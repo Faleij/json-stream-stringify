@@ -7,7 +7,9 @@
     "url": "git+https://github.com/Faleij/json-stream-stringify.git"
   },
   "main": "jsonStreamify.js",
-  "dependencies": {},
+  "dependencies": {
+    "coveralls": "2.11.9"
+  },
   "devDependencies": {
     "istanbul": "0.4.3",
     "expect.js": "0.3.1",
