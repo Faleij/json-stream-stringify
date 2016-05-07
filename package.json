@@ -1,0 +1,37 @@
+{
+  "name": "json-stream-stringify",
+  "version": "1.0.0",
+  "description": "JSON.Stringify as a readable stream",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Faleij/json-stream-stringify.git"
+  },
+  "main": "jsonStreamify.js",
+  "dependencies": {},
+  "devDependencies": {
+    "istanbul": "0.4.3",
+    "expect.js": "0.3.1",
+    "mocha": "2.4.5"
+  },
+  "scripts": {
+    "test": "mocha",
+    "coverage": "istanbul cover node_modules/mocha/bin/_mocha -- test.js -R spec"
+  },
+  "keywords": [
+    "JSON",
+    "stringify",
+    "stream",
+    "string"
+    "streamify",
+    "read",
+    "readable",
+    "co",
+    "generator",
+    "iterable"
+  ],
+  "author": "Faleij",
+  "license": "ISC",
+  "engines": {
+    "node": ">=4.2.2"
+  }
+}
