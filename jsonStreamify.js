@@ -81,4 +81,6 @@ class JSONStreamify extends CoStream {
     }
 }
 
-module.exports = JSONStreamify;
+module.exports = function (obj) {
+    return new JSONStreamify(obj);
+};

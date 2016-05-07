@@ -21,7 +21,7 @@ npm install --save json-stream-stringify
 ```javascript
 const JSONStringify = require('json-stream-stringify');
 
-new JSONStreamify({
+JSONStreamify({
     aPromise: Promise.resolve(Promise.resolve("text")), // Promise may resolve more promises and streams which will be consumed and resolved
     aStream: ReadableObjectStream({a:1}, 'str'), // Stream may write more streams and promises which will be consumed and resolved
     arr: [1, 2, Promise.resolve(3), Promise.resolve([4, 5]), ReadableStream('a', 'b', 'c')],
@@ -66,6 +66,11 @@ c
 "date":
 "2016-01-01T23:00:00.000Z"
 }
+```
+
+## Practical Express + Mongoose Example
+```javascript
+app.get('/api/users', (req, res, next) => JSONStreamify(Users.find().stream()).pipe(res));
 ```
 
 ## TODO
