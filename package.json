@@ -30,7 +30,7 @@
     "iterable"
   ],
   "author": "Faleij",
-  "license": "ISC",
+  "license": "MIT",
   "engines": {
     "node": ">=4.2.2"
   }
