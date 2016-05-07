@@ -21,7 +21,7 @@
     "JSON",
     "stringify",
     "stream",
-    "string"
+    "string",
     "streamify",
     "read",
     "readable",
