@@ -1,13 +1,19 @@
 # JSON Stream Stringify
-[![NPM version][npm-image]][npm-url] [![NPM Downloads][downloads-image]][downloads-url] [![Dependency Status][dependency-image]][dependency-url] [![Build Status][travis-image]][travis-url] [![Coverage Status][coveralls-image]][coveralls-url] [![License][license-image]](LICENSE) [![Gratipay][gratipay-image]][gratipay-url]
+[![NPM version][npm-image]][npm-url]
+[![NPM Downloads][downloads-image]][downloads-url]
+[![Dependency Status][dependency-image]][dependency-url]
+[![Build Status][travis-image]][travis-url]
+[![Coverage Status][coveralls-image]][coveralls-url]
+[![License][license-image]](LICENSE)
+[![Gratipay][gratipay-image]][gratipay-url]
 
-JSON Stringify as a Readable Stream with rescursive resolving of any Readable stream and Promises.
+JSON Stringify as a Readable Stream with rescursive resolving of any readable streams and Promises.
 
-Main Features:
-- Promises are rescursively resolved and the result is piped through JSONStreamify
-- Streams (ObjectMode) are piped through a transform which pipes the data through JSONStreamify (enabling recursive streams)
-- Streams (Non-ObjectMode) is stringified and piped.
-- Output is streamed optimally
+## Main Features
+- Promises are rescursively resolved and the result is piped through JSONStreamStreamify
+- Streams (ObjectMode) are piped through a transform which pipes the data through JSONStreamStreamify (enabling recursive resolving)
+- Streams (Non-ObjectMode) is stringified and piped
+- Output is streamed optimally with as small chunks as possible
 - Great memory management with reference release post process (When a key and value has been processed the value is dereferenced)
 - Stream pressure handling
 
@@ -18,9 +24,11 @@ npm install --save json-stream-stringify
 ```
 
 ## API
-(value[, replacer])
-- ``value`` Any type to convert to JSON.
-- ``replacer`` Function(key, value) or Array.  
+
+### JSONStreamStringify(value[, replacer])  
+Convert value to JSON string. Returns a readable stream.
+- ``value`` Any data to convert to JSON.
+- ``replacer`` Optional ``Function(key, value)`` or ``Array``.  
  As a function the returned value replaces the value associated with the key.  [Details](https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#The_replacer_parameter)  
  As an array all other keys are filtered. [Details](https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#Example_with_an_array)
 
@@ -75,7 +83,7 @@ c
 }
 ```
 
-## Practical Express + Mongoose Example
+## Practical Example with Express + Mongoose
 ```javascript
 app.get('/api/users', (req, res, next) => JSONStreamify(Users.find().stream()).pipe(res));
 ```
