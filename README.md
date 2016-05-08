@@ -9,7 +9,7 @@ Main Features:
 - Streams (Non-ObjectMode) is stringified and piped.
 - Output is streamed optimally
 - Great memory management with reference release post process (When a key and value has been processed the value is dereferenced)
-- Stream pressure handling.
+- Stream pressure handling
 
 ## Install
 
@@ -17,7 +17,14 @@ Main Features:
 npm install --save json-stream-stringify
 ```
 
-## Usage
+## API
+(value[, replacer])
+- ``value`` Any type to convert to JSON.
+- ``replacer`` Function(key, value) or Array.  
+ As a function the returned value replaces the value associated with the key.  [Details](https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#The_replacer_parameter)  
+ As an array all other keys are filtered. [Details](https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#Example_with_an_array)
+
+## Example Usage
 ```javascript
 const JSONStringify = require('json-stream-stringify');
 

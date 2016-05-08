@@ -9,7 +9,7 @@ const isReadableStream = require('./utils').isReadableStream;
 class JSONStreamify extends CoStream {
     constructor(value, replacer) {
         super(arguments);
-        this._iter = new RecursiveIterable(value, replacer);
+        this._iter = new RecursiveIterable(replacer instanceof Function ? replacer(undefined, value) : value, replacer);
     }
 
     * _makeGenerator(value, replacer) {

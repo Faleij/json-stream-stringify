@@ -21,8 +21,7 @@ function createTest(input, expected, replacer) {
 
 function ReadableStream() {
     const stream = new Readable({
-        read: () => undefined,
-        objectMode: typeof arguments[0] !== 'string'
+        objectMode: Array.from(arguments).some(v => typeof v !== 'string')
     });
     Array.from(arguments).forEach(v => stream.push(v));
     stream.push(null);
@@ -55,9 +54,16 @@ describe('Streamify', () => {
     it('{a:undefined} should be {"a":1}', createTest({
         a: undefined
     }, '{"a":1}', (k, v) => {
-        expect(k).to.be('a');
-        return 1;
+        if (k) {
+            expect(k).to.be('a');
+        }
+        return k ? 1 : v;
     }));
+
+    it('{a:1,b,2} should be {"b":2}', createTest({
+        a: 1,
+        b: 2
+    }, '{"b":2}', ['b']));
 
     it('{a:1} should be {"a":1}', createTest({
         a: 1

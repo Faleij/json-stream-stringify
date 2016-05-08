@@ -13,7 +13,8 @@ class RecursiveIterable {
             __shouldExclude: isReadableStream
         }];
         this.obj = this._shouldIterate(obj) ? Array.isArray(obj) ? obj.slice(0) : Object.assign({}, obj) : obj;
-        this.replacer = replacer instanceof Function ? replacer : undefined;
+        this.replacerIsArray = Array.isArray(replacer);
+        this.replacer = replacer instanceof Function || this.replacerIsArray  ? replacer : undefined;
     }
 
     _shouldIterate(val) {
@@ -63,6 +64,10 @@ class RecursiveIterable {
                     state = 'value';
                     key = keys.shift();
                     val = this.obj[key];
+
+                    if (this.replacerIsArray && this.replacer.indexOf(key) === -1) {
+                        return ctx.next();
+                    }
                 } else if (!isObject && !ctx.done) {
                     state = 'value';
                     val = this.obj;
@@ -70,7 +75,7 @@ class RecursiveIterable {
                 }
 
                 if(state === 'value') {
-                    if (this.replacer) {
+                    if (this.replacer && !this.replacerIsArray) {
                         val = this.replacer(key, val);
                     }
 
