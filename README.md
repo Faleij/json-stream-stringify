@@ -75,7 +75,6 @@ app.get('/api/users', (req, res, next) => JSONStreamify(Users.find().stream()).p
 
 ## TODO
 - Space option
-- Replacer option
 - Circular dependency detection/handling (infinite loops may occur as it is)
 
 Feel free to contribute.

@@ -5,17 +5,17 @@ const JSONStreamify = require('./jsonStreamify');
 const Readable = require('stream').Readable;
 const expect = require('expect.js');
 
-function createTest(input, expected) {
+function createTest(input, expected, replacer) {
     return () => new Promise((resolve, reject) => {
         let str = '';
-        new JSONStreamify(input).on('data', data => str += data.toString()).once('end', () => {
+        new JSONStreamify(input, replacer).on('data', data => str += data.toString()).once('end', () => {
             try {
                 expect(str).to.equal(expected);
             } catch (err) {
                 return reject(err);
             }
             resolve();
-        });
+        }).once('error', reject);
     });
 }
 
@@ -40,7 +40,24 @@ describe('Streamify', () => {
 
     it('1 should be 1', createTest(1, `1`));
 
+    it('1 should be 2', createTest(1, `2`, (k, v) => 2));
+
     it('{} should be {}', createTest({}, '{}'));
+
+    it('{a:undefined} should be {}', createTest({
+        a: undefined
+    }, '{}'));
+
+    it('{a:null} should be {"a":null}', createTest({
+        a: null
+    }, '{"a":null}'));
+
+    it('{a:undefined} should be {"a":1}', createTest({
+        a: undefined
+    }, '{"a":1}', (k, v) => {
+        expect(k).to.be('a');
+        return 1;
+    }));
 
     it('{a:1} should be {"a":1}', createTest({
         a: 1
@@ -59,6 +76,8 @@ describe('Streamify', () => {
 
     it('[] should be []', createTest([], '[]'));
 
+    it('[1, undefined, 2] should be [1,null,2]', createTest([1, undefined, 2], '[1,null,2]'));
+
     it(`[1,'a'] should be [1,"a"]`, createTest([1, 'a'], '[1,"a"]'));
 
     it('Promise(1) should be 1', createTest(Promise.resolve(1), '1'));
@@ -76,4 +95,6 @@ describe('Streamify', () => {
     }, '{"a":[1,2,3]}'));
 
     it(`ReadableStream('a', 'b', 'c') should be "abc"`, createTest(ReadableStream('a', 'b', 'c'), '"abc"'));
+
+    it(`ReadableStream({}, 'a', undefined, 'c') should be [{},"a",null,"c"]`, createTest(ReadableStream({}, 'a', undefined, 'c'), '[{},"a",null,"c"]'));
 });

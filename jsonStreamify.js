@@ -7,22 +7,22 @@ const RecursiveIterable = require('./recursiveIterable');
 const isReadableStream = require('./utils').isReadableStream;
 
 class JSONStreamify extends CoStream {
-    constructor(obj) {
+    constructor(value, replacer) {
         super(arguments);
+        this._iter = new RecursiveIterable(value, replacer);
     }
 
-    * _makeGenerator(value) {
-        let iter = new RecursiveIterable(value);
+    * _makeGenerator(value, replacer) {
         let insertSeparator = false;
-        for (let obj of iter) {
+        for (let obj of this._iter) {
             if (obj.state === 'close') {
-                yield this.push(obj.ctxType === Object ? '}' : ']');
+                yield this.push(obj.type === Object ? '}' : ']');
                 continue;
             }
 
             if (obj.state === 'open') {
                 insertSeparator = false;
-                yield this.push(obj.ctxType === Object ? '{' : '[');
+                yield this.push(obj.type === Object ? '{' : '[');
                 continue;
             }
 
@@ -56,7 +56,9 @@ class JSONStreamify extends CoStream {
                             pass.push(',');
                         }
                         first = false;
-                        new JSONStreamify(data).once('end', () => next(null, undefined)).pipe(pass, {
+                        let stream = new JSONStreamify(data);
+                        stream._iter._forcedCtxType = Array;
+                        stream.once('end', () => next(null, undefined)).pipe(pass, {
                             end: false
                         });
                     }
@@ -78,9 +80,10 @@ class JSONStreamify extends CoStream {
 
             insertSeparator = true;
         }
+        this._iter = undefined;
     }
 }
 
-module.exports = function (obj) {
-    return new JSONStreamify(obj);
+module.exports = function (obj, replacer) {
+    return new JSONStreamify(obj, replacer);
 };
