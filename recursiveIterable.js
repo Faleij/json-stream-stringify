@@ -14,7 +14,7 @@ class RecursiveIterable {
         }];
         this.obj = this._shouldIterate(obj) ? (Array.isArray(obj) ? obj.slice(0) : Object.assign({}, obj)) : obj;
         this.replacerIsArray = Array.isArray(replacer);
-        this.replacer = replacer instanceof Function || this.replacerIsArray  ? replacer : undefined;
+        this.replacer = replacer instanceof Function || this.replacerIsArray ? replacer : undefined;
     }
 
     _shouldIterate(val) {
@@ -74,17 +74,17 @@ class RecursiveIterable {
                     ctx.done = true;
                 }
 
-                if(state === 'value') {
-                    if (typeof val === 'function') {
-                        return ctx.next();
-                    }
-
+                if (state === 'value') {
                     if (this.replacer && !this.replacerIsArray) {
                         val = this.replacer(key, val);
                     }
 
                     if (val && typeof val.toJSON === 'function') {
                         val = val.toJSON();
+                    }
+
+                    if (typeof val === 'function') {
+                        val = undefined;
                     }
 
                     if (val === undefined) {

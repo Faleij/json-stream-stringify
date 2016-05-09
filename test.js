@@ -70,8 +70,10 @@ describe('Streamify', () => {
     }, '{"a":1}'));
 
     it('{a:function(){}} should be {}', createTest({
-        a: function(){}
+        a: function() {}
     }, '{}'));
+
+    it('[function(){}] should be [null]', createTest([function() {}], '[null]'));
 
     it('{a:date} should be {"a":date.toJSON()}', createTest({
         a: date
@@ -85,12 +87,20 @@ describe('Streamify', () => {
     }), '{"a":1,"b":{"c":2}}'));
 
     it('{a:[1], "b": 2} should be {"a":[1],"b":2}', createTest({
-        a: [1], b: 2
+        a: [1],
+        b: 2
     }, '{"a":[1],"b":2}'));
 
     it('[] should be []', createTest([], '[]'));
 
-    it('[[[]],[[]]] should be [[[]],[[]]]', createTest([[[]],[[]]], '[[[]],[[]]]'));
+    it('[[[]],[[]]] should be [[[]],[[]]]', createTest([
+        [
+            []
+        ],
+        [
+            []
+        ]
+    ], '[[[]],[[]]]'));
 
     it('[1, undefined, 2] should be [1,null,2]', createTest([1, undefined, 2], '[1,null,2]'));
 
