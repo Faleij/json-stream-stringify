@@ -12,7 +12,7 @@ class RecursiveIterable {
         this.exclude = [Promise, {
             __shouldExclude: isReadableStream
         }];
-        this.obj = this._shouldIterate(obj) ? Array.isArray(obj) ? obj.slice(0) : Object.assign({}, obj) : obj;
+        this.obj = this._shouldIterate(obj) ? (Array.isArray(obj) ? obj.slice(0) : Object.assign({}, obj)) : obj;
         this.replacerIsArray = Array.isArray(replacer);
         this.replacer = replacer instanceof Function || this.replacerIsArray  ? replacer : undefined;
     }
@@ -75,6 +75,10 @@ class RecursiveIterable {
                 }
 
                 if(state === 'value') {
+                    if (typeof val === 'function') {
+                        return ctx.next();
+                    }
+
                     if (this.replacer && !this.replacerIsArray) {
                         val = this.replacer(key, val);
                     }

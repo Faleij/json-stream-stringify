@@ -69,6 +69,10 @@ describe('Streamify', () => {
         a: 1
     }, '{"a":1}'));
 
+    it('{a:function(){}} should be {}', createTest({
+        a: function(){}
+    }, '{}'));
+
     it('{a:date} should be {"a":date.toJSON()}', createTest({
         a: date
     }, `{"a":"${date.toJSON()}"}`));
