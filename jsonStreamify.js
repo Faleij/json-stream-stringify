@@ -15,7 +15,10 @@ class JSONStreamify extends CoStream {
     * _makeGenerator(value, replacer) {
         let insertSeparator = false;
         for (let obj of this._iter) {
+            //console.log(obj, insertSeparator);
+
             if (obj.state === 'close') {
+                insertSeparator = true;
                 yield this.push(obj.type === Object ? '}' : ']');
                 continue;
             }

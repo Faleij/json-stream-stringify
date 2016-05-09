@@ -80,7 +80,13 @@ describe('Streamify', () => {
         }
     }), '{"a":1,"b":{"c":2}}'));
 
+    it('{a:[1], "b": 2} should be {"a":[1],"b":2}', createTest({
+        a: [1], b: 2
+    }, '{"a":[1],"b":2}'));
+
     it('[] should be []', createTest([], '[]'));
+
+    it('[[[]],[[]]] should be [[[]],[[]]]', createTest([[[]],[[]]], '[[[]],[[]]]'));
 
     it('[1, undefined, 2] should be [1,null,2]', createTest([1, undefined, 2], '[1,null,2]'));
 
@@ -104,5 +110,18 @@ describe('Streamify', () => {
 
     it(`ReadableStream({}, 'a', undefined, 'c') should be [{},"a",null,"c"]`, createTest(ReadableStream({}, 'a', undefined, 'c'), '[{},"a",null,"c"]'));
 
-    it(`{ a: ReadableStream({name: 'name', date: date }) } should be [{},"a",null,"c"]`, createTest({ a: ReadableStream({name: 'name', date: date }) }, `{"a":[{"name":"name","date":"${date.toJSON()}"}]}`));
+    it(`{ a: ReadableStream({name: 'name', date: date }) } should be {"a":[{"name":"name","date":"${date.toJSON()}"}]}`, createTest({
+        a: ReadableStream({
+            name: 'name',
+            date: date
+        })
+    }, `{"a":[{"name":"name","date":"${date.toJSON()}"}]}`));
+
+    it(`{ a: ReadableStream({name: 'name', arr: [], date: date }) } should be {"a":[{"name":"name","arr":[],"date":"${date.toJSON()}"}]}`, createTest({
+        a: ReadableStream({
+            name: 'name',
+            arr: [],
+            date: date
+        })
+    }, `{"a":[{"name":"name","arr":[],"date":"${date.toJSON()}"}]}`));
 });

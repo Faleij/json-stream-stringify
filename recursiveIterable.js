@@ -37,7 +37,7 @@ class RecursiveIterable {
         const attachIterator = iterator => childIterator = iterator;
         const ctx = {
             depth: 0,
-            type: this._forcedCtxType || ctxType,
+            type: ctxType,
             next: () => {
                 let child = childIterator && childIterator.next();
                 if (child) {
