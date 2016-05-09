@@ -89,7 +89,7 @@ class RecursiveIterable {
                             this.obj[key] = undefined;
                         }
 
-                        if (ctx.type !== Array) {
+                        if ((this._parentCtxType ? this._parentCtxType !== Array : true) && ctx.type !== Array) {
                             return ctx.next();
                         }
 

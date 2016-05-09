@@ -103,4 +103,6 @@ describe('Streamify', () => {
     it(`ReadableStream('a', 'b', 'c') should be "abc"`, createTest(ReadableStream('a', 'b', 'c'), '"abc"'));
 
     it(`ReadableStream({}, 'a', undefined, 'c') should be [{},"a",null,"c"]`, createTest(ReadableStream({}, 'a', undefined, 'c'), '[{},"a",null,"c"]'));
+
+    it(`{ a: ReadableStream({name: 'name', date: date }) } should be [{},"a",null,"c"]`, createTest({ a: ReadableStream({name: 'name', date: date }) }, `{"a":[{"name":"name","date":"${date.toJSON()}"}]}`));
 });

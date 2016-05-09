@@ -57,7 +57,7 @@ class JSONStreamify extends CoStream {
                         }
                         first = false;
                         let stream = new JSONStreamify(data);
-                        stream._iter._forcedCtxType = Array;
+                        stream._iter._parentCtxType = Array;
                         stream.once('end', () => next(null, undefined)).pipe(pass, {
                             end: false
                         });
