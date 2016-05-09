@@ -1,6 +1,6 @@
 {
   "name": "json-stream-stringify",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "description": "JSON.Stringify as a readable stream",
   "repository": {
     "type": "git",
