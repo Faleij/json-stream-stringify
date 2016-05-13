@@ -7,9 +7,9 @@ const RecursiveIterable = require('./recursiveIterable');
 const isReadableStream = require('./utils').isReadableStream;
 
 class JSONStreamify extends CoStream {
-    constructor(value, replacer) {
+    constructor(value, replacer, space, _visited) {
         super(arguments);
-        this._iter = new RecursiveIterable(replacer instanceof Function ? replacer(undefined, value) : value, replacer);
+        this._iter = new RecursiveIterable(replacer instanceof Function ? replacer(undefined, value) : value, replacer, space, _visited);
     }
 
     * _makeGenerator(value, replacer) {
@@ -54,12 +54,12 @@ class JSONStreamify extends CoStream {
                 const pass = new PassThrough();
                 obj.value.pipe(new Transform({
                     objectMode: true,
-                    transform: function(data, enc, next) {
+                    transform: (data, enc, next) => {
                         if (!first) {
                             pass.push(',');
                         }
                         first = false;
-                        let stream = new JSONStreamify(data);
+                        let stream = new JSONStreamify(data, this._iter.replacer, this._iter.space, this._iter.visited);
                         stream._iter._parentCtxType = Array;
                         stream.once('end', () => next(null, undefined)).pipe(pass, {
                             end: false
@@ -71,8 +71,27 @@ class JSONStreamify extends CoStream {
                 continue;
             }
 
+            if (obj.state === 'circular') {
+                let replacer;
+                this.emit('circular', Object.assign(obj, {
+                    replace: (promise) => {
+                        if (promise instanceof Promise) {
+                            obj.value = promise;
+                        }
+                    }
+                }));
+
+                // Wait for replace
+                yield new Promise(resolve => process.nextTick(resolve));
+
+                if (!(obj.value instanceof Promise)) {
+                    yield this.push('"[Circular]"');
+                }
+            }
+
             if (obj.value instanceof Promise) {
-                obj.value = obj.attachChild(new RecursiveIterable(yield obj.value)[Symbol.iterator]());
+                let childIterator = new RecursiveIterable(yield obj.value, this._iter.replacer, this._iter.space, this._iter.visited)[Symbol.iterator]();
+                obj.value = obj.attachChild(childIterator);
                 insertSeparator = false;
                 continue;
             }
@@ -87,6 +106,6 @@ class JSONStreamify extends CoStream {
     }
 }
 
-module.exports = function (obj, replacer) {
+module.exports = function(obj, replacer) {
     return new JSONStreamify(obj, replacer);
 };

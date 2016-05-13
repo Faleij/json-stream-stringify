@@ -4,7 +4,7 @@ const Readable = require('stream').Readable;
 const isReadableStream = require('./utils').isReadableStream;
 
 class RecursiveIterable {
-    constructor(obj, replacer) {
+    constructor(obj, replacer, space, visited) {
         // Save a copy of the root object so we can be memory effective
         if (obj && typeof obj.toJSON === 'function') {
             obj = obj.toJSON();
@@ -12,9 +12,14 @@ class RecursiveIterable {
         this.exclude = [Promise, {
             __shouldExclude: isReadableStream
         }];
+        this.visited = visited || new WeakSet();
+        if (this._shouldIterate(obj)) {
+            this.visited.add(obj);
+        }
         this.obj = this._shouldIterate(obj) ? (Array.isArray(obj) ? obj.slice(0) : Object.assign({}, obj)) : obj;
         this.replacerIsArray = Array.isArray(replacer);
         this.replacer = replacer instanceof Function || this.replacerIsArray ? replacer : undefined;
+        this.space = space;
     }
 
     _shouldIterate(val) {
@@ -101,11 +106,15 @@ class RecursiveIterable {
                     }
 
                     if (this._shouldIterate(val)) {
-                        state = 'child';
-                        childIterator = new RecursiveIterable(val)[Symbol.iterator]();
-                        childIterator.ctxType = ctx.type;
-                        childIterator.depth = ctx.depth + 1;
-                        childIterator.type = RecursiveIterable._getType(val);
+                        if (this.visited.has(val)) {
+                            state = 'circular';
+                        } else {
+                            state = 'child';
+                            childIterator = new RecursiveIterable(val, this.replacer, this.space, this.visited)[Symbol.iterator]();
+                            childIterator.ctxType = ctx.type;
+                            childIterator.depth = ctx.depth + 1;
+                            childIterator.type = RecursiveIterable._getType(val);
+                        }
                     }
 
                     if (key) {
