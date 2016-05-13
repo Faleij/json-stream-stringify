@@ -139,68 +139,13 @@ describe('Streamify', () => {
         })
     }, `{"a":[{"name":"name","arr":[],"date":"${date.toJSON()}"}]}`));
 
-    it(`{ a: [Circular] } should be {"a":"[Circular]"}`, () => {
-        let data = {};
-        data.a = data;
-
-        let deferred0 = Promise.defer();
-        let deferred1 = Promise.defer();
-        let str = '';
-        new JSONStreamify(data)
-            .once('circular', err => {
-                try {
-                    expect(err).to.be.ok();
-                } catch (err) {
-                    return deferred1.reject(err);
-                }
-                deferred1.resolve();
-            })
-            .on('data', data => str += data.toString())
-            .once('end', () => {
-                try {
-                    expect(str).to.equal(`{"a":"[Circular]"}`);
-                } catch (err) {
-                    return deferred0.reject(err);
-                }
-                deferred0.resolve();
-            });
-
-        return Promise.all([deferred0.promise, deferred1.promise]);
-    });
-
-    it(`{ a: [Circular] } should be {"a":"custom"}`, () => {
-        let data = {};
-        data.a = data;
-
-        let deferred0 = Promise.defer();
-        let deferred1 = Promise.defer();
-        let str = '';
-        new JSONStreamify(data)
-            .once('circular', err => {
-                try {
-                    expect(err).to.be.ok();
-                    expect(err.replace).to.be.a(Function);
-                    err.replace(Promise.resolve('custom'));
-                } catch (err) {
-                    return deferred1.reject(err);
-                }
-                deferred1.resolve();
-            })
-            .on('data', data => str += data.toString())
-            .once('end', () => {
-                try {
-                    expect(str).to.equal(`{"a":"custom"}`);
-                } catch (err) {
-                    return deferred0.reject(err);
-                }
-                deferred0.resolve();
-            });
-
-        return Promise.all([deferred0.promise, deferred1.promise]);
-    });
-
     let circularData0 = {};
     circularData0.a = circularData0;
-    circularData0.b = [circularData0, { a: circularData0 }]
-    it('{a: Circular, b: [Circular, { a: Circular }]} should be {"a":"[Circular]","b":["[Circular]",{"a":"[Circular]"}]}', createTest(circularData0, '{"a":"[Circular]","b":["[Circular]",{"a":"[Circular]"}]}'));
+    it(`{ a: a } should be {"a":"~"}`, createTest(circularData0, `{"a":"~"}`));
+
+    let circularData1 = {};
+    circularData1.a = circularData1;
+    circularData1.b = [circularData1, { a: circularData1 }]
+    circularData1.b[3] = circularData1.b[1];
+    it('{a: a, b: [a, { a: a },,a.b.1]} should be {"a":"~","b":["~",{"a":"~"},null,"~b~1"]}', createTest(circularData1, '{"a":"~","b":["~",{"a":"~"},null,"~b~1"]}'));
 });

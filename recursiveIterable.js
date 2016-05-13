@@ -4,7 +4,7 @@ const Readable = require('stream').Readable;
 const isReadableStream = require('./utils').isReadableStream;
 
 class RecursiveIterable {
-    constructor(obj, replacer, space, visited) {
+    constructor(obj, replacer, space, visited, stack) {
         // Save a copy of the root object so we can be memory effective
         if (obj && typeof obj.toJSON === 'function') {
             obj = obj.toJSON();
@@ -12,9 +12,10 @@ class RecursiveIterable {
         this.exclude = [Promise, {
             __shouldExclude: isReadableStream
         }];
-        this.visited = visited || new WeakSet();
+        this._stack = stack || [];
+        this.visited = visited || new WeakMap();
         if (this._shouldIterate(obj)) {
-            this.visited.add(obj);
+            this.visited.set(obj, this._stack.slice(0));
         }
         this.obj = this._shouldIterate(obj) ? (Array.isArray(obj) ? obj.slice(0) : Object.assign({}, obj)) : obj;
         this.replacerIsArray = Array.isArray(replacer);
@@ -34,12 +35,16 @@ class RecursiveIterable {
         let isObject = this._shouldIterate(this.obj);
         let ctxType = RecursiveIterable._getType(this.obj);
         let nextIndex = 0;
-        let keys = isObject && Object.keys(this.obj);
+        let keys = isObject && (Array.isArray(this.obj) ? Array.from(Array(this.obj.length).keys()) : Object.keys(this.obj));
         let childIterator;
         let closed = !isObject;
         let opened = closed;
 
-        const attachIterator = iterator => childIterator = iterator;
+        const attachIterator = (iterator, addToStack) => {
+            childIterator = iterator;
+            childIterator._stack = this._stack.concat(addToStack || []);
+        };
+
         const ctx = {
             depth: 0,
             type: ctxType,
@@ -108,9 +113,10 @@ class RecursiveIterable {
                     if (this._shouldIterate(val)) {
                         if (this.visited.has(val)) {
                             state = 'circular';
+                            val = this.visited.get(val);
                         } else {
                             state = 'child';
-                            childIterator = new RecursiveIterable(val, this.replacer, this.space, this.visited)[Symbol.iterator]();
+                            childIterator = new RecursiveIterable(val, this.replacer, this.space, this.visited, this._stack.concat(key))[Symbol.iterator]();
                             childIterator.ctxType = ctx.type;
                             childIterator.depth = ctx.depth + 1;
                             childIterator.type = RecursiveIterable._getType(val);
@@ -129,6 +135,7 @@ class RecursiveIterable {
                         key: key,
                         value: val,
                         state: state,
+                        stack: this._stack.slice(0),
                         type: type,
                         ctxType: ctx.type,
                         attachChild: attachIterator
