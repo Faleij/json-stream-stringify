@@ -139,13 +139,29 @@ describe('Streamify', () => {
         })
     }, `{"a":[{"name":"name","arr":[],"date":"${date.toJSON()}"}]}`));
 
-    let circularData0 = {};
-    circularData0.a = circularData0;
-    it(`{ a: a } should be {"a":"~"}`, createTest(circularData0, `{"a":"~"}`));
+    describe('circular structure', function() {
 
-    let circularData1 = {};
-    circularData1.a = circularData1;
-    circularData1.b = [circularData1, { a: circularData1 }]
-    circularData1.b[3] = circularData1.b[1];
-    it('{a: a, b: [a, { a: a },,a.b.1]} should be {"a":"~","b":["~",{"a":"~"},null,"~b~1"]}', createTest(circularData1, '{"a":"~","b":["~",{"a":"~"},null,"~b~1"]}'));
+        let circularData0 = {};
+        circularData0.a = circularData0;
+        it(`{ a: a } should be {"a":{"$ref":"$"}}`, createTest(circularData0, `{"a":{"$ref":"$"}}`));
+
+        let circularData1 = {};
+        circularData1.a = circularData1;
+        circularData1.b = [circularData1, {
+            a: circularData1
+        }]
+        circularData1.b[3] = ReadableStream(circularData1.b[1]);
+        it('{a: a, b: [a, { a: a },,ReadableStream(b.1)]} should be {"a":{"$ref":"$"},"b":[{"$ref":"$"},{"a":{"$ref":"$"}},null,[{"$ref":"$[\\"b\\"][1]"}]]}', createTest(circularData1, '{"a":{"$ref":"$"},"b":[{"$ref":"$"},{"a":{"$ref":"$"}},null,[{"$ref":"$[\\"b\\"][1]"}]]}'));
+
+        let circularData2 = {};
+        let data2 = {
+            a: 'deep'
+        };
+        circularData2.a = Promise.resolve({
+            b: data2
+        });
+        circularData2.b = data2;
+        it(`{ a: Promise({ b: { a: 'deep' } }), b: a.b } should be {"a":{"b":{"a":"deep"}},"b":{"$ref":"$[\\"a\\"][\\"b\\"]"}}`, createTest(circularData2, `{"a":{"b":{"a":"deep"}},"b":{"$ref":"$[\\"a\\"][\\"b\\"]"}}`));
+
+    });
 });

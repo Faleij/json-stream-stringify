@@ -7,9 +7,9 @@ const RecursiveIterable = require('./recursiveIterable');
 const isReadableStream = require('./utils').isReadableStream;
 
 class JSONStreamify extends CoStream {
-    constructor(value, replacer, space, _visited) {
+    constructor(value, replacer, space, _visited, _stack) {
         super(arguments);
-        this._iter = new RecursiveIterable(replacer instanceof Function ? replacer(undefined, value) : value, replacer, space, _visited);
+        this._iter = new RecursiveIterable(replacer instanceof Function ? replacer(undefined, value) : value, replacer, space, _visited, _stack);
     }
 
     * _makeGenerator(value, replacer) {
@@ -52,6 +52,7 @@ class JSONStreamify extends CoStream {
                 yield this.push('[');
                 let first = true;
                 const pass = new PassThrough();
+                let i = 0;
                 obj.value.pipe(new Transform({
                     objectMode: true,
                     transform: (data, enc, next) => {
@@ -60,7 +61,7 @@ class JSONStreamify extends CoStream {
                         }
                         first = false;
                         let stream = new JSONStreamify(data, this._iter.replacer, this._iter.space, this._iter.visited);
-                        stream._iter._stack = this._iter._stack;
+                        stream._iter._stack = obj.stack.concat(i++);
                         stream._iter._parentCtxType = Array;
                         stream.once('end', () => next(null, undefined)).pipe(pass, {
                             end: false
@@ -73,11 +74,11 @@ class JSONStreamify extends CoStream {
             }
 
             if (obj.state === 'circular') {
-                yield this.push(JSON.stringify(`~${obj.value.join('~')}`));
+                yield this.push(JSON.stringify({ $ref: `$${obj.value.map(v => `[${JSON.stringify(v)}]`).join('')}` }));
             }
 
             if (obj.value instanceof Promise) {
-                let childIterator = new RecursiveIterable(yield obj.value, this._iter.replacer, this._iter.space, this._iter.visited, this._iter._stack)[Symbol.iterator]();
+                let childIterator = new RecursiveIterable(yield obj.value, this._iter.replacer, this._iter.space, this._iter.visited, obj.stack.concat(obj.key || []))[Symbol.iterator]();
                 obj.value = obj.attachChild(childIterator, obj.key);
                 insertSeparator = false;
                 continue;

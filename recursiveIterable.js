@@ -15,9 +15,13 @@ class RecursiveIterable {
         this._stack = stack || [];
         this.visited = visited || new WeakMap();
         if (this._shouldIterate(obj)) {
-            this.visited.set(obj, this._stack.slice(0));
+            this.isVisited = this.visited.has(obj);
+            if (!this.isVisited) {
+                // Save only unvisited stack to weakmap
+                this.visited.set(obj, this._stack.slice(0));
+            }
         }
-        this.obj = this._shouldIterate(obj) ? (Array.isArray(obj) ? obj.slice(0) : Object.assign({}, obj)) : obj;
+        this.obj = this._shouldIterate(obj) && !this.isVisited ? (Array.isArray(obj) ? obj.slice(0) : Object.assign({}, obj)) : obj;
         this.replacerIsArray = Array.isArray(replacer);
         this.replacer = replacer instanceof Function || this.replacerIsArray ? replacer : undefined;
         this.space = space;
@@ -63,9 +67,16 @@ class RecursiveIterable {
                 let type;
 
                 if (!opened) {
-                    state = 'open';
-                    type = ctxType;
-                    opened = true;
+                    if (this.isVisited) {
+                        state = 'circular';
+                        val = this.visited.get(this.obj);
+                        opened = closed = true;
+                        keys.length = 0;
+                    } else {
+                        state = 'open';
+                        type = ctxType;
+                        opened = true;
+                    }
                 } else if (!closed && !keys.length) {
                     state = 'close';
                     type = ctxType;

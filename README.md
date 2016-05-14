@@ -90,13 +90,14 @@ app.get('/api/users', (req, res, next) => JSONStreamStreamify(Users.find().strea
 
 ## TODO
 - Space option
-- Circular dependency detection/handling (infinite loops may occur as it is)
 
 Feel free to contribute.
 
 ## Technical Notes
 Uses toJSON when available, and JSON.stringify to stringify everything but objects and arrays.  
 Streams with ObjectMode=true are output as arrays while ObjectMode=false output as a concatinated string (each chunk is piped with transforms).
+
+Circular structures are handled using a WeakMap based implementation of [Douglas Crockfords Decycle method](https://github.com/douglascrockford/JSON-js/blob/master/cycle.js). To restore circular structures; use Crockfords Retrocycle method on the parsed object.
 
 ## Requirements
 NodeJS >4.2.2
