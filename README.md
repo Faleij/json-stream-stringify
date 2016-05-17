@@ -34,9 +34,9 @@ Convert value to JSON string. Returns a readable stream.
 
 ## Example Usage
 ```javascript
-const JSONStreamStreamify = require('json-stream-stringify');
+const JSONStreamStringify = require('json-stream-stringify');
 
-JSONStreamStreamify({
+JSONStreamStringify({
     aPromise: Promise.resolve(Promise.resolve("text")), // Promise may resolve more promises and streams which will be consumed and resolved
     aStream: ReadableObjectStream({a:1}, 'str'), // Stream may write more streams and promises which will be consumed and resolved
     arr: [1, 2, Promise.resolve(3), Promise.resolve([4, 5]), ReadableStream('a', 'b', 'c')],
@@ -44,7 +44,7 @@ JSONStreamStreamify({
 }).pipe(process.stdout);
 
 ```
-Output (each line represents a write from JSONStreamStreamify)
+Output (each line represents a write from JSONStreamStringify)
 ```
 {
 "aPromise":
@@ -85,7 +85,7 @@ c
 
 ## Practical Example with Express + Mongoose
 ```javascript
-app.get('/api/users', (req, res, next) => JSONStreamStreamify(Users.find().stream()).pipe(res));
+app.get('/api/users', (req, res, next) => JSONStreamStringify(Users.find().stream()).pipe(res));
 ```
 
 ## TODO
