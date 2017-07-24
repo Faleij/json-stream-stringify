@@ -42,7 +42,10 @@ class JSONStreamify extends CoStream {
                     // Non Object Mode are emitted as a concatinated string
                     yield this.push('"');
                     yield obj.value.pipe(new Transform({
-                        transform: (data, enc, next) => next(null, JSON.stringify(data.toString()).slice(1, -1))
+                        transform: (data, enc, next) => {
+                            this.push(JSON.stringify(data.toString()).slice(1, -1));
+                            next(null);
+                        }
                     }));
                     yield this.push('"');
                     continue;
