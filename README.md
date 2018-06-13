@@ -14,6 +14,7 @@ JSON Stringify as a Readable Stream with rescursive resolving of any readable st
 - Streams (ObjectMode) are piped through a transform which pipes the data through JSONStreamStreamify (enabling recursive resolving)
 - Streams (Non-ObjectMode) is stringified and piped
 - Output is streamed optimally with as small chunks as possible
+- Decycling using Douglas Crockfords Cycle algorithm
 - Great memory management with reference release post process (When a key and value has been processed the value is dereferenced)
 - Stream pressure handling
 
@@ -25,12 +26,14 @@ npm install --save json-stream-stringify
 
 ## API
 
-### JSONStreamStringify(value[, replacer])  
+### JSONStreamStringify(value[, replacer[, spaces[, noDecycle]]])  
 Convert value to JSON string. Returns a readable stream.
 - ``value`` Any data to convert to JSON.
 - ``replacer`` Optional ``Function(key, value)`` or ``Array``.  
  As a function the returned value replaces the value associated with the key.  [Details](https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#The_replacer_parameter)  
  As an array all other keys are filtered. [Details](https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#Example_with_an_array)
+- ``spaces`` Optional ``String`` or ``Number`` **Not yet implemented**
+- ``noDecycle`` Optional ``Boolean`` Set to ``true`` to disable decycling.
 
 ## Example Usage
 ```javascript

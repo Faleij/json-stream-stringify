@@ -5,10 +5,10 @@ const JSONStreamify = require('./jsonStreamify');
 const Readable = require('stream').Readable;
 const expect = require('expect.js');
 
-function createTest(input, expected, replacer) {
+function createTest(input, expected, ...args) {
     return () => new Promise((resolve, reject) => {
         let str = '';
-        new JSONStreamify(input, replacer).on('data', data => str += data.toString()).once('end', () => {
+        new JSONStreamify(input, ...args).on('data', data => str += data.toString()).once('end', () => {
             try {
                 expect(str).to.equal(expected);
             } catch (err) {
@@ -163,5 +163,11 @@ describe('Streamify', () => {
         circularData2.b = data2;
         it(`{ a: Promise({ b: { a: 'deep' } }), b: a.b } should be {"a":{"b":{"a":"deep"}},"b":{"$ref":"$[\\"a\\"][\\"b\\"]"}}`, createTest(circularData2, `{"a":{"b":{"a":"deep"}},"b":{"$ref":"$[\\"a\\"][\\"b\\"]"}}`));
 
+    });
+
+    describe('disable circular', () => {
+        let el = { foo: 'bar' };
+        const arr = [el, el];
+        it(`[{"foo":"bar"},{"foo":"bar"}] should be [{"foo":"bar"},{"foo":"bar"}]`, createTest(arr, `[{"foo":"bar"},{"foo":"bar"}]`, undefined, 2, true));
     });
 });
