@@ -52,27 +52,29 @@ class JSONStreamify extends CoStream {
                 }
 
                 // Object Mode Streams are emitted as arrays
-                yield this.push('[');
                 let first = true;
-                const pass = new PassThrough();
+                const arrayStream = new PassThrough();
                 let i = 0;
                 obj.value.pipe(new Transform({
                     objectMode: true,
                     transform: (data, enc, next) => {
                         if (!first) {
-                            pass.push(',');
+                            arrayStream.push(',');
                         }
                         first = false;
                         let stream = new JSONStreamify(data, this._iter.replacer, this._iter.space, this._iter.visited);
                         stream._iter._stack = obj.stack.concat(i++);
                         stream._iter._parentCtxType = Array;
-                        stream.once('end', () => next(null, undefined)).pipe(pass, {
-                            end: false
-                        });
+                        // pipe to arrayStream but don't close arrayStream on end
+                        stream.once('end', () => next(null, undefined));
+                        stream.pipe(arrayStream, { end: false });
                     }
-                })).once('end', () => pass.end()).resume();
-                yield pass;
+                })).once('end', () => arrayStream.end()).resume();
+
+                yield this.push('[');
+                yield arrayStream;
                 yield this.push(']');
+
                 continue;
             }
 
