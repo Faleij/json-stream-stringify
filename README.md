@@ -30,10 +30,10 @@ npm install --save json-stream-stringify
 Convert value to JSON string. Returns a readable stream.
 - ``value`` Any data to convert to JSON.
 - ``replacer`` Optional ``Function(key, value)`` or ``Array``.  
-- ``spaces`` Optional ``String`` or ``Number`` **Not yet implemented**
-- ``noDecycle`` Optional ``Boolean`` Set to ``true`` to disable decycling.
  As a function the returned value replaces the value associated with the key.  [Details](https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#The_replacer_parameter)  
  As an array all other keys are filtered. [Details](https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#Example_with_an_array)
+- ``spaces`` Optional ``String`` or ``Number`` **Not yet implemented**
+- ``noDecycle`` Optional ``Boolean`` Set to ``true`` to disable decycling.
 
 ## Example Usage
 ```javascript
