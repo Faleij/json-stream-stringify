@@ -1,10 +1,22 @@
 language: node_js
 node_js:
+- '0.10'
+- '4'
 - '6'
 - '8'
 - '10'
 sudo: false
 script:
-  - "npm run coverage"
-after_script:
-  - "test -e ./coverage/lcov.info && cat ./coverage/lcov.info | coveralls"
+- npm run build
+- npm run coveralls
+deploy:
+  provider: npm
+  email: faleij@gmail.com
+  on:
+    tags: true
+  skip_cleanup: true
+  before_deploy:
+  - GLOBIGNORE=dist:package*.json:LICENSE:README* ; rm -rf *
+  api_key:
+    # this is encrypted
+    secure: DGC2rGS6/I+yvIUN6CHjt5gAnVZibZEE1NQk3WqhMQMGRqB5czZlTc0aM69LEbP/6uM6xWUf07xaR2KnbaOh+aZWETgxlQQXCHqvbImZKDQZpeKh/iEtjQ0hbzWyOqzf3t38vRPCEGe0C6OzvGRY2IrTN/edvdq/ZXQAAfKMZArypp99B8r8RMkco3HDWztT1ln6K0MR1xRL7sEdui5irhJ3xZt7Pm4RaXuT0MEOw6F3GQDNVdnaoID9zgyZ/npMQh9YcXjOMiJgDhvtDgdkq8FBRddrSVglZgPBgl7h5Z5x/i280tzSJsa22IHlKMOZi4b7bZrWksr9BD1SR7C14uJQp8hn5GjxqFVK5/AN/hA9iy4Kzb8Rs0Py/d6USyYlo9yQMEeLzXuP2VE7fFmE9viA1k8KHTFy8Mjwcwu1bRdHptyAmyL1TdSQSnZyFs0wMbWGjyZHkPDveDJ2rv+pD8vrlTxHOkklGHzFT3xWoyu9ClDh7/0t/25a4x+T9qeQerummWUkLTqEnoP/k8KQAYwKLox2R6hGKcDOHMW0SC4Mh4g4lwowFRKMeZ81FI0MDnsaJXlZatlAVGIxy56i9P3JEJrqt7xnA+9H2s23d2MAtSiDZIGWFdwXRlX1ERxMq8DxsjH1N5u1B4tS5EnH4QurN0AN3z3F4eFMjEhHzMI=
