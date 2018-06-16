@@ -13,7 +13,6 @@ before_install:
 script:
 - npm run build
 - nvm use $NODE_VERSION
-- node -e "process.version.split('.')[0].slice(1) < 6 && require('child_process').execSync('npm uninstall ajv ajv-keywords && npm install mocha@3.5.3')"
 - npm run test
 - nvm use 8
 - npm run coveralls
