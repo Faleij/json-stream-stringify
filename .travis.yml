@@ -7,11 +7,11 @@ node_js:
 - '10'
 sudo: false
 script:
-- echo TRAVIS_NODE_VERSION: $TRAVIS_NODE_VERSION
+- NODE_VERSION=$(node --version)
 - nvm install 8.11.3
 - nvm use 8.11.3
 - npm run build
-- nvm use $TRAVIS_NODE_VERSION
+- nvm use $NODE_VERSION
 - npm run coveralls
 deploy:
   provider: npm
