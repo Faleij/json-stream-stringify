@@ -1,1 +1,1 @@
-export { default } from './src/JsonStreamify';
+export { default } from './src/JsonStreamStringify';

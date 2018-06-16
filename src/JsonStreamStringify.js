@@ -6,7 +6,7 @@ import CoStream from './CoStream';
 import RecursiveIterable from './RecursiveIterable';
 import { isReadableStream, isPromise } from './utils';
 
-class JSONStreamify extends CoStream {
+class JsonStreamStringify extends CoStream {
   constructor(value, replacer, space, _visited, _stack) {
     super(value, replacer, space, _visited, _stack);
     const replacedValue = replacer instanceof Function ? replacer(undefined, value) : value;
@@ -63,7 +63,7 @@ class JSONStreamify extends CoStream {
               arrayStream.push(',');
             }
             first = false;
-            const stream = new JSONStreamify(
+            const stream = new JsonStreamStringify(
               data,
               this._iter.replacer,
               this._iter.space,
@@ -118,8 +118,8 @@ const fakeMap = {
   set: () => undefined,
 };
 
-function jsonStreamStringify(value, replacer, space, noDecycle) {
-  return new JSONStreamify(value, replacer, space, noDecycle ? fakeMap : undefined);
+function jsonStreamStringify(value, replacer, space, cycle) {
+  return new JsonStreamStringify(value, replacer, space, !cycle && fakeMap);
 }
 
 export default jsonStreamStringify;

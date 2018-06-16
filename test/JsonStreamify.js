@@ -1,12 +1,12 @@
 
-import JSONStreamify from './../index';
+import jsonStreamStringify from './../index';
 import { Readable } from 'stream';
 import expect from 'expect.js';
 
 function createTest(input, expected, ...args) {
   return () => new Promise((resolve, reject) => {
     let str = '';
-    new JSONStreamify(input, ...args)
+    jsonStreamStringify(input, ...args)
       .on('data', (data) => {
         str += data.toString();
       })
@@ -150,7 +150,7 @@ describe('JsonStreamStringify', () => {
   describe('circular structure', () => {
     const circularData0 = {};
     circularData0.a = circularData0;
-    it('{ a: a } should be {"a":{"$ref":"$"}}', createTest(circularData0, '{"a":{"$ref":"$"}}'));
+    it('{ a: a } should be {"a":{"$ref":"$"}}', createTest(circularData0, '{"a":{"$ref":"$"}}', undefined, 2, true));
 
     const circularData1 = {};
     circularData1.a = circularData1;
@@ -158,7 +158,7 @@ describe('JsonStreamStringify', () => {
       a: circularData1,
     }];
     circularData1.b[3] = ReadableStream(circularData1.b[1]);
-    it('{a: a, b: [a, { a: a },,ReadableStream(b.1)]} should be {"a":{"$ref":"$"},"b":[{"$ref":"$"},{"a":{"$ref":"$"}},null,[{"$ref":"$[\\"b\\"][1]"}]]}', createTest(circularData1, '{"a":{"$ref":"$"},"b":[{"$ref":"$"},{"a":{"$ref":"$"}},null,[{"$ref":"$[\\"b\\"][1]"}]]}'));
+    it('{a: a, b: [a, { a: a },,ReadableStream(b.1)]} should be {"a":{"$ref":"$"},"b":[{"$ref":"$"},{"a":{"$ref":"$"}},null,[{"$ref":"$[\\"b\\"][1]"}]]}', createTest(circularData1, '{"a":{"$ref":"$"},"b":[{"$ref":"$"},{"a":{"$ref":"$"}},null,[{"$ref":"$[\\"b\\"][1]"}]]}', undefined, 2, true));
 
     const circularData2 = {};
     const data2 = {
@@ -168,12 +168,12 @@ describe('JsonStreamStringify', () => {
       b: data2,
     });
     circularData2.b = data2;
-    it('{ a: Promise({ b: { a: \'deep\' } }), b: a.b } should be {"a":{"b":{"a":"deep"}},"b":{"$ref":"$[\\"a\\"][\\"b\\"]"}}', createTest(circularData2, '{"a":{"b":{"a":"deep"}},"b":{"$ref":"$[\\"a\\"][\\"b\\"]"}}'));
+    it('{ a: Promise({ b: { a: \'deep\' } }), b: a.b } should be {"a":{"b":{"a":"deep"}},"b":{"$ref":"$[\\"a\\"][\\"b\\"]"}}', createTest(circularData2, '{"a":{"b":{"a":"deep"}},"b":{"$ref":"$[\\"a\\"][\\"b\\"]"}}', undefined, 2, true));
   });
 
-  describe('disable circular', () => {
-    const el = { foo: 'bar' };
-    const arr = [el, el];
-    it('[{"foo":"bar"},{"foo":"bar"}] should be [{"foo":"bar"},{"foo":"bar"}]', createTest(arr, '[{"foo":"bar"},{"foo":"bar"}]', undefined, 2, true));
+  describe('decycle should not be active', () => {
+    const a = { foo: 'bar' };
+    const arr = [a, a];
+    it('[a, a] should be [{"foo":"bar"},{"foo":"bar"}]', createTest(arr, '[{"foo":"bar"},{"foo":"bar"}]'));
   });
 });

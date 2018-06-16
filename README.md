@@ -1,22 +1,27 @@
 # JSON Stream Stringify
 [![NPM version][npm-image]][npm-url]
 [![NPM Downloads][downloads-image]][downloads-url]
-[![Dependency Status][dependency-image]][dependency-url]
 [![Build Status][travis-image]][travis-url]
 [![Coverage Status][coveralls-image]][coveralls-url]
 [![License][license-image]](LICENSE)
-[![Gratipay][gratipay-image]][gratipay-url]
 
 JSON Stringify as a Readable Stream with rescursive resolving of any readable streams and Promises.
 
+## Breaking changes in V2
+ - Decycling is off by default
+
 ## Main Features
 - Promises are rescursively resolved and the result is piped through JSONStreamStreamify
-- Streams (ObjectMode) are piped through a transform which pipes the data through JSONStreamStreamify (enabling recursive resolving)
-- Streams (Non-ObjectMode) is stringified and piped
+- Streams (Object mode) are piped through a transform which pipes the data through JSONStreamStreamify (enabling recursive resolving)
+- Streams (Non-Object mode) is stringified and piped
 - Output is streamed optimally with as small chunks as possible
-- Decycling using Douglas Crockfords Cycle algorithm
+- Cycling of cyclical structures and dags using Douglas Crockfords Cycle algorithm
 - Great memory management with reference release post process (When a key and value has been processed the value is dereferenced)
 - Stream pressure handling
+- Tested and runs on ES5* and ES6
+- Bundled as UMD
+
+\* With peer depedencies
 
 ## Install
 
@@ -26,14 +31,14 @@ npm install --save json-stream-stringify
 
 ## API
 
-### JSONStreamStringify(value[, replacer[, spaces[, noDecycle]]])  
+### JSONStreamStringify(value[, replacer[, spaces[, cycle]]])  
 Convert value to JSON string. Returns a readable stream.
 - ``value`` Any data to convert to JSON.
 - ``replacer`` Optional ``Function(key, value)`` or ``Array``.  
  As a function the returned value replaces the value associated with the key.  [Details](https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#The_replacer_parameter)  
  As an array all other keys are filtered. [Details](https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#Example_with_an_array)
 - ``spaces`` Optional ``String`` or ``Number`` **Not yet implemented**
-- ``noDecycle`` Optional ``Boolean`` Set to ``true`` to disable decycling.
+- ``cycle`` Optional ``Boolean`` Set to ``true`` to enable cycling of cyclical structures and dags.
 
 ## Example Usage
 ```javascript
@@ -100,10 +105,36 @@ Feel free to contribute.
 Uses toJSON when available, and JSON.stringify to stringify everything but objects and arrays.  
 Streams with ObjectMode=true are output as arrays while ObjectMode=false output as a concatinated string (each chunk is piped with transforms).
 
-Circular structures are handled using a WeakMap based implementation of [Douglas Crockfords Decycle method](https://github.com/douglascrockford/JSON-js/blob/master/cycle.js). To restore circular structures; use Crockfords Retrocycle method on the parsed object.
+Circular structures are by default handled using a WeakMap based implementation of [Douglas Crockfords Decycle method](https://github.com/douglascrockford/JSON-js/blob/master/cycle.js), this option can be turned off; see the documentation on usage. To restore circular structures; use Crockfords Retrocycle method on the parsed object, not included in this module.
 
 ## Requirements
-NodeJS >4.2.2
+
+### ES5 / Node <6.5 / Browsers
+
+Use file `dist/es5.umd.js` or `dist/es5.umd.min.js`
+
+`package.browser` points to `dist/es5.umd.js`
+
+NodeJS:
+- Use `require('json-stream-stringify/dist/es5.umd.js')`
+- For node versions earlier than 0.12 - you should upgrade or use an alternative stream library, streams seems to be broken
+
+Any Browser / Other Environment:
+- You need a bundler like webpack or rollup
+- Nodejs conformat Stream library (included with webpack)
+- The peer depedencies of this library (babel-runtime and babel-polyfill)
+
+### ES6 / Node >=6.5 / Browsers
+
+Use file `dist/es6.umd.js` or `dist/es6.umd.min.js`
+
+`package.main` points to `dist/es6.umd.js`
+
+NodeJS
+- require as usual
+
+Any Browser / Other Environment:
+- Nodejs conformat Stream library
 
 # License
 [MIT](LICENSE)
@@ -114,12 +145,8 @@ Copyright (c) 2016 Faleij [faleij@gmail.com](mailto:faleij@gmail.com)
 [npm-url]: https://npmjs.org/package/json-stream-stringify
 [downloads-image]: https://img.shields.io/npm/dm/json-stream-stringify.svg
 [downloads-url]: https://npmjs.org/package/json-stream-stringify
-[dependency-image]: https://gemnasium.com/Faleij/json-stream-stringify.svg
-[dependency-url]: https://gemnasium.com/Faleij/json-stream-stringify
 [travis-image]: https://travis-ci.org/Faleij/json-stream-stringify.svg?branch=master
 [travis-url]: https://travis-ci.org/Faleij/json-stream-stringify
 [coveralls-image]: https://coveralls.io/repos/Faleij/json-stream-stringify/badge.svg?branch=master&service=github
 [coveralls-url]: https://coveralls.io/github/Faleij/json-stream-stringify?branch=master
 [license-image]: https://img.shields.io/badge/license-MIT-blue.svg
-[gratipay-image]: https://img.shields.io/gratipay/faleij.svg
-[gratipay-url]: https://gratipay.com/faleij/
