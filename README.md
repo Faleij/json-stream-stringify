@@ -7,26 +7,30 @@
 
 JSON Stringify as a Readable Stream with rescursive resolving of any readable streams and Promises.
 
-## Breaking changes in V2
- - Decycling is off by default
+## Breaking changes in v2
+ - Cycling is off by default
 
 ## Main Features
 - Promises are rescursively resolved and the result is piped through JSONStreamStreamify
 - Streams (Object mode) are piped through a transform which pipes the data through JSONStreamStreamify (enabling recursive resolving)
 - Streams (Non-Object mode) is stringified and piped
 - Output is streamed optimally with as small chunks as possible
-- Cycling of cyclical structures and dags using Douglas Crockfords Cycle algorithm
-- Great memory management with reference release post process (When a key and value has been processed the value is dereferenced)
+- Cycling of cyclical structures and dags using Douglas Crockfords Cycle algorithm*
+- Great memory management with reference release after processing
 - Stream pressure handling
-- Tested and runs on ES5* and ES6
+- Tested and runs on ES5** and ES6
 - Bundled as UMD
 
-\* With peer depedencies
+\* Off by default since v2
+\** With peer depedencies
 
 ## Install
 
 ```bash
 npm install --save json-stream-stringify
+
+# if you plain on using es5; install peer dependencies as well
+npm install --save-dev babel-runtime babel-polyfill
 ```
 
 ## API
