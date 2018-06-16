@@ -88,7 +88,7 @@ class JSONStreamify extends CoStream {
         yield this.push(JSON.stringify({ $ref: `$${obj.value.map(v => `[${JSON.stringify(v)}]`).join('')}` }));
       }
 
-      if (obj.value instanceof Promise) {
+      if (obj.value && obj.value.then instanceof Function) {
         const childIterator = new RecursiveIterable(
           yield obj.value,
           this._iter.replacer,
