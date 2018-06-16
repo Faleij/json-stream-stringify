@@ -41,8 +41,8 @@ class JSONStreamify extends CoStream {
         if (!obj.value._readableState.objectMode) {
           // Non Object Mode are emitted as a concatinated string
           yield this.push('"');
-          yield obj.value.pipe(new Transform({
-            transform: (data, enc, next) => {
+          yield obj.value.pipe(Object.assign(new Transform(), {
+            _transform: (data, enc, next) => {
               this.push(JSON.stringify(data.toString()).slice(1, -1));
               next(null);
             },
@@ -55,9 +55,10 @@ class JSONStreamify extends CoStream {
         let first = true;
         const arrayStream = new PassThrough();
         let index = 0;
-        obj.value.pipe(new Transform({
+        obj.value.pipe(Object.assign(new Transform({
           objectMode: true,
-          transform: (data, enc, next) => {
+        }), {
+          _transform: (data, enc, next) => {
             if (!first) {
               arrayStream.push(',');
             }
