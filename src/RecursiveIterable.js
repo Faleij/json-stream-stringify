@@ -1,4 +1,7 @@
-import { isReadableStream } from './utils';
+import {
+  isReadableStream,
+  isPromise,
+} from './utils';
 
 class RecursiveIterable {
   constructor(obj, replacer, space, visited, stack) {
@@ -7,9 +10,7 @@ class RecursiveIterable {
     if (objRef && typeof objRef.toJSON === 'function') {
       objRef = objRef.toJSON();
     }
-    this.exclude = [Promise, {
-      __shouldExclude: isReadableStream,
-    }];
+    this.exclude = [{ __shouldExclude: isPromise }, { __shouldExclude: isReadableStream }];
     this._stack = stack || [];
     this.visited = visited || new WeakMap();
     if (this._shouldIterate(objRef)) {
@@ -40,11 +41,13 @@ class RecursiveIterable {
   }
 
   [Symbol.iterator]() {
-    const isObject = this._shouldIterate(this.obj);
-    const ctxType = RecursiveIterable._getType(this.obj);
-    const keys = isObject && (Array.isArray(this.obj) ? Array.from(Array(this.obj.length).keys()) : Object.keys(this.obj));
+    const { obj } = this;
+    const shouldIter = this._shouldIterate(obj);
+    const isArr = Array.isArray(obj);
+    const ctxType = RecursiveIterable._getType(obj);
+    const keys = shouldIter && (isArr ? Array.from(Array(obj.length).keys()) : Object.keys(obj));
     let childIterator;
-    let closed = !isObject;
+    let closed = !shouldIter;
     let opened = closed;
 
     const attachIterator = (iterator, addToStack) => {
@@ -93,7 +96,7 @@ class RecursiveIterable {
           if (this.replacerIsArray && this.replacer.indexOf(key) === -1) {
             return ctx.next();
           }
-        } else if (!isObject && !ctx.done) {
+        } else if (!shouldIter && !ctx.done) {
           state = 'value';
           val = this.obj;
           ctx.done = true;

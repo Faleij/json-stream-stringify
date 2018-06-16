@@ -38,6 +38,7 @@
   },
   "scripts": {
     "build": "rollup -c rollup.config.js",
+    "build:watch": "rollup -c rollup.config.js --watch",
     "test": "mocha --require babel-core/register -R spec",
     "coverage": "nyc npm test",
     "coveralls": "npm run coverage && nyc report --reporter=text-lcov | coveralls"

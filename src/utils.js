@@ -6,3 +6,7 @@ export function isReadableStream(obj) {
     typeof obj._read === 'function' &&
     typeof obj._readableState === 'object';
 }
+
+export function isPromise(value) {
+  return value && (value.then instanceof Function);
+}

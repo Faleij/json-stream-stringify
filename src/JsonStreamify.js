@@ -4,7 +4,7 @@ import {
 } from 'stream';
 import CoStream from './CoStream';
 import RecursiveIterable from './RecursiveIterable';
-import { isReadableStream } from './utils';
+import { isReadableStream, isPromise } from './utils';
 
 class JSONStreamify extends CoStream {
   constructor(value, replacer, space, _visited, _stack) {
@@ -88,9 +88,10 @@ class JSONStreamify extends CoStream {
         yield this.push(JSON.stringify({ $ref: `$${obj.value.map(v => `[${JSON.stringify(v)}]`).join('')}` }));
       }
 
-      if (obj.value && obj.value.then instanceof Function) {
+      if (isPromise(obj.value)) {
+        const val = yield obj.value;
         const childIterator = new RecursiveIterable(
-          yield obj.value,
+          val,
           this._iter.replacer,
           this._iter.space,
           this._iter.visited,

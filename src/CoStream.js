@@ -1,5 +1,5 @@
 import { PassThrough } from 'stream';
-import { isReadableStream } from './utils';
+import { isReadableStream, isPromise } from './utils';
 
 class CoStream extends PassThrough {
   constructor(...args) {
@@ -42,7 +42,7 @@ class CoStream extends PassThrough {
       return;
     }
 
-    if (result.value instanceof Promise) {
+    if (isPromise(result.value)) {
       // Resolve promises
       Promise.resolve(result.value).then((res) => {
         this._handle(this._generator.next(res));

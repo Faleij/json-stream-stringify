@@ -60,8 +60,10 @@ describe('JsonStreamStringify', () => {
   }, '{"a":1}', (k, v) => {
     if (k) {
       expect(k).to.be('a');
+      expect(v).to.be(undefined);
+      return 1;
     }
-    return k ? 1 : v;
+    return v;
   }));
 
   it('{a:1,b,2} should be {"b":2}', createTest({
