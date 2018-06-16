@@ -22,6 +22,7 @@ JSON Stringify as a Readable Stream with rescursive resolving of any readable st
 - Bundled as UMD
 
 \* Off by default since v2
+
 \** With peer depedencies
 
 ## Install
