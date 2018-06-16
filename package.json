@@ -6,9 +6,9 @@
     "type": "git",
     "url": "git+https://github.com/Faleij/json-stream-stringify.git"
   },
-  "browser": "dist/es5.umd.min.js",
-  "main": "dist/es6.umd.min.js",
-  "module": "src/JsonStreamify.js",
+  "browser": "./dist/es5.umd.min.js",
+  "main": "./dist/es6.umd.min.js",
+  "module": "./src/JsonStreamify.js",
   "peerDependencies": {
     "babel-runtime": "*",
     "babel-polyfill": "*"
