@@ -1,5 +1,5 @@
 
-import JSONStreamify from './..';
+import JSONStreamify from './../index';
 import { Readable } from 'stream';
 import expect from 'expect.js';
 

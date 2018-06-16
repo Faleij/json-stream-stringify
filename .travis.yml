@@ -6,10 +6,11 @@ node_js:
 - '8'
 - '10'
 sudo: false
-script:
-- NODE_VERSION=$(node --version)
+before_install:
+- export NODE_VERSION=$(node --version)
 - nvm install 8.11.3
 - nvm use 8.11.3
+script:
 - npm run build
 - nvm use $NODE_VERSION
 - npm run coveralls
