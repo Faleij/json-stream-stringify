@@ -2,21 +2,28 @@ import {
   Transform,
   PassThrough,
 } from 'stream';
-import CoStream from './CoStream';
+import GeneratorStream from './GeneratorStream';
 import RecursiveIterable from './RecursiveIterable';
 import { isReadableStream, isPromise } from './utils';
 
-class JsonStreamStringify extends CoStream {
+class JsonStreamStringify extends GeneratorStream {
   constructor(value, replacer, space, _visited, _stack) {
     super(value, replacer, space, _visited, _stack);
     const replacedValue = replacer instanceof Function ? replacer(undefined, value) : value;
     this._iter = new RecursiveIterable(replacedValue, replacer, space, _visited, _stack);
+    this._stack = this._iter._stack;
+  }
+
+  get stack() {
+    return this._childStream ? this._childStream.stack : this._stack.slice(0);
   }
 
   * _makeGenerator() {
     let insertSeparator = false;
     // eslint-disable-next-line no-restricted-syntax
     for (const obj of this._iter) {
+      this._stack = obj.stack;
+
       if (obj.state === 'close') {
         insertSeparator = true;
         yield this.push(obj.type === Object ? '}' : ']');
@@ -55,7 +62,7 @@ class JsonStreamStringify extends CoStream {
         let first = true;
         const arrayStream = new PassThrough();
         let index = 0;
-        obj.value.pipe(Object.assign(new Transform({
+        const transform = Object.assign(new Transform({
           objectMode: true,
         }), {
           _transform: (data, enc, next) => {
@@ -68,15 +75,24 @@ class JsonStreamStringify extends CoStream {
               this._iter.replacer,
               this._iter.space,
               this._iter.visited,
+              obj.stack.concat(index),
             );
-            stream._iter._stack = obj.stack.concat(index);
+            this._childStream = stream;
             index += 1;
             stream._iter._parentCtxType = Array;
             // pipe to arrayStream but don't close arrayStream on end
-            stream.once('end', () => next(null, undefined));
-            stream.pipe(arrayStream, { end: false });
+            stream
+              .once('end', () => next(null, undefined))
+              .once('error', err => this.emit('error', err))
+              .pipe(arrayStream, { end: false });
           },
-        })).once('end', () => arrayStream.end()).resume();
+        });
+        obj.value
+          .once('error', err => this.emit('error', err))
+          .pipe(transform);
+        transform
+          .once('end', () => arrayStream.end())
+          .resume();
 
         yield this.push('[');
         yield arrayStream;

@@ -6,7 +6,7 @@ import expect from 'expect.js';
 function createTest(input, expected, ...args) {
   return () => new Promise((resolve, reject) => {
     let str = '';
-    jsonStreamStringify(input, ...args)
+    const jsonStream = jsonStreamStringify(input, ...args)
       .on('data', (data) => {
         str += data.toString();
       })
@@ -19,7 +19,10 @@ function createTest(input, expected, ...args) {
         }
         resolve();
       })
-      .once('error', reject);
+      .once('error', (err) => {
+        err.jsonStream = jsonStream;
+        reject(err);
+      });
   });
 }
 
@@ -27,8 +30,12 @@ function ReadableStream(...args) {
   const stream = new Readable({
     objectMode: args.some(v => typeof v !== 'string'),
   });
-  args.forEach(v => stream.push(v));
-  stream.push(null);
+  stream._read = () => {
+    if (!args.length) return stream.push(null);
+    const v = args.shift();
+    if (v instanceof Error) return stream.emit('error', v);
+    return stream.push(v);
+  };
   return stream;
 }
 
@@ -118,11 +125,26 @@ describe('JsonStreamStringify', () => {
 
   it('Promise(Promise(1)) should be 1', createTest(Promise.resolve(Promise.resolve(1)), '1'));
 
+  it('Promise.reject(Error) should emit Error', () => {
+    const err = new Error('should emit error');
+    return createTest(new Promise((resolve, reject) => reject(err)), '')()
+      .then(() => new Error('exepected error to be emitted'), err1 => expect(err1).to.be(err));
+  });
+
   it('{a:Promise(1)} should be {"a":1}', createTest({
     a: Promise.resolve(1),
   }, '{"a":1}'));
 
   it('ReadableStream(1) should be [1]', createTest(ReadableStream(1), '[1]'));
+
+  it('{a:[ReadableStream(1, Error, 2)]} should emit Error', () => {
+    const err = new Error('should emit error');
+    return createTest({ a: [ReadableStream(1, err, 2)] }, '')()
+      .then(() => new Error('exepected error to be emitted'), (err1) => {
+        expect(err.jsonStream.stack).to.eql(['a', 0]);
+        expect(err1).to.be(err);
+      });
+  });
 
   it('{a:ReadableStream(1,2,3)} should be {"a":[1,2,3]}', createTest({
     a: ReadableStream(1, 2, 3),

@@ -7,7 +7,8 @@
 
 JSON Stringify as a Readable Stream with rescursive resolving of any readable streams and Promises.
 
-## Breaking changes in v2
+## Important and Breaking changes in v2
+ - Rejected promises and stream errors are now handled and emitted as errors through jsonStreamStringify instances
  - Cycling is off by default
 
 ## Main Features
@@ -15,14 +16,13 @@ JSON Stringify as a Readable Stream with rescursive resolving of any readable st
 - Streams (Object mode) are piped through a transform which pipes the data through JSONStreamStreamify (enabling recursive resolving)
 - Streams (Non-Object mode) is stringified and piped
 - Output is streamed optimally with as small chunks as possible
-- Cycling of cyclical structures and dags using Douglas Crockfords Cycle algorithm*
+- Cycling of cyclical structures and dags using [Douglas Crockfords cycle algorithm](https://github.com/douglascrockford/JSON-js)*
 - Great memory management with reference release after processing
 - Stream pressure handling
 - Tested and runs on ES5** and ES6
 - Bundled as UMD
 
-\* Off by default since v2
-
+\* Off by default since v2  
 \** With peer depedencies
 
 ## Install
@@ -36,28 +36,46 @@ npm install --save-dev babel-runtime babel-polyfill
 
 ## API
 
-### JSONStreamStringify(value[, replacer[, spaces[, cycle]]])  
-Convert value to JSON string. Returns a readable stream.
-- ``value`` Any data to convert to JSON.
-- ``replacer`` Optional ``Function(key, value)`` or ``Array``.  
+### jsonStreamStringify(value[, replacer[, spaces[, cycle]]])  
+
+Streaming conversion of ``value`` to JSON string.
+
+**Parameters**
+- ``value`` ``Any``  
+  Data to convert to JSON.
+- ``replacer`` Optional ``Function(key, value)`` or ``Array``  
  As a function the returned value replaces the value associated with the key.  [Details](https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#The_replacer_parameter)  
  As an array all other keys are filtered. [Details](https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#Example_with_an_array)
 - ``spaces`` Optional ``String`` or ``Number`` **Not yet implemented**
-- ``cycle`` Optional ``Boolean`` Set to ``true`` to enable cycling of cyclical structures and dags.
+- ``cycle`` Optional ``Boolean``  
+  ``true`` enables cycling of cyclical structures and dags.  
+  To restore cyclical structures; use [Crockfords Retrocycle method](https://github.com/douglascrockford/JSON-js) on the parsed object (not included in this module).
+ 
+**Returns**
+- ``JsonStreamStringify`` object that exposes a [Streams3 interface](https://nodejs.org/api/stream.html#stream_class_stream_readable).
+
+### jsonStreamStringify#stack
+
+**Returns**
+- ``Array[String, Number]`` Current path being serialized as an array of Strings (keys of objects) and Numbers (index into arrays).  
+  Can be transformed into an mpath with ``.join('.')``.  
+  Useful in conjunction with ``.on('error', ...)``, for knowing what path may have caused the error.
 
 ## Example Usage
 ```javascript
-const JSONStreamStringify = require('json-stream-stringify');
+const jsonStreamStringify = require('json-stream-stringify');
 
-JSONStreamStringify({
-    aPromise: Promise.resolve(Promise.resolve("text")), // Promise may resolve more promises and streams which will be consumed and resolved
-    aStream: ReadableObjectStream({a:1}, 'str'), // Stream may write more streams and promises which will be consumed and resolved
+const jsonStream = jsonStreamStringify({
+    // Promises and Streams may resolve more promises and/or streams which will be consumed and processed into json output
+    aPromise: Promise.resolve(Promise.resolve("text")),
+    aStream: ReadableObjectStream({a:1}, 'str'),
     arr: [1, 2, Promise.resolve(3), Promise.resolve([4, 5]), ReadableStream('a', 'b', 'c')],
     date: new Date(2016, 0, 2)
-}).pipe(process.stdout);
-
+});
+jsonStream.once('error', () => console.log('Error at path', jsonStream.stack.join('.')));
+jsonStream.pipe(process.stdout);
 ```
-Output (each line represents a write from JSONStreamStringify)
+Output (each line represents a write from jsonStreamStringify)
 ```
 {
 "aPromise":
@@ -101,23 +119,11 @@ c
 app.get('/api/users', (req, res, next) => JSONStreamStringify(Users.find().stream()).pipe(res));
 ```
 
-## TODO
-- Space option
-
-Feel free to contribute.
-
-## Technical Notes
-Uses toJSON when available, and JSON.stringify to stringify everything but objects and arrays.  
-Streams with ObjectMode=true are output as arrays while ObjectMode=false output as a concatinated string (each chunk is piped with transforms).
-
-Circular structures are by default handled using a WeakMap based implementation of [Douglas Crockfords Decycle method](https://github.com/douglascrockford/JSON-js/blob/master/cycle.js), this option can be turned off; see the documentation on usage. To restore circular structures; use Crockfords Retrocycle method on the parsed object, not included in this module.
-
 ## Requirements
 
 ### ES5 / Node <6.5 / Browsers
 
-Use file `dist/es5.umd.js` or `dist/es5.umd.min.js`
-
+Use file `dist/es5.umd.js` or `dist/es5.umd.min.js` (Found in npm installed version)  
 `package.browser` points to `dist/es5.umd.js`
 
 NodeJS:
@@ -131,8 +137,7 @@ Any Browser / Other Environment:
 
 ### ES6 / Node >=6.5 / Browsers
 
-Use file `dist/es6.umd.js` or `dist/es6.umd.min.js`
-
+Use file `dist/es6.umd.js` or `dist/es6.umd.min.js` (Found in npm installed version)  
 `package.main` points to `dist/es6.umd.js`
 
 NodeJS
@@ -140,6 +145,15 @@ NodeJS
 
 Any Browser / Other Environment:
 - Nodejs conformat Stream library
+
+## TODO
+- Space option
+
+Feel free to contribute.
+
+## Technical Notes
+Uses toJSON when available, and JSON.stringify to stringify everything but objects and arrays.  
+Streams with ObjectMode=true are output as arrays while ObjectMode=false output as a concatinated string (each chunk is piped with transforms).
 
 # License
 [MIT](LICENSE)

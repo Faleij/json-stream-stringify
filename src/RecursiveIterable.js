@@ -40,6 +40,10 @@ class RecursiveIterable {
     return undefined;
   }
 
+  get stack() {
+    return this._stack.slice(0);
+  }
+
   [Symbol.iterator]() {
     const { obj } = this;
     const shouldIter = this._shouldIterate(obj);
@@ -60,6 +64,7 @@ class RecursiveIterable {
       type: ctxType,
       next: () => {
         const child = childIterator && childIterator.next();
+
         if (child) {
           if (!child.done) {
             return child;

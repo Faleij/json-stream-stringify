@@ -1,7 +1,7 @@
 import { PassThrough } from 'stream';
 import { isReadableStream, isPromise } from './utils';
 
-class CoStream extends PassThrough {
+class GeneratorStream extends PassThrough {
   constructor(...args) {
     super();
     this._generator = this._makeGenerator(...args);
@@ -36,17 +36,18 @@ class CoStream extends PassThrough {
 
     if (isReadableStream(result.value)) {
       // Pipe streams and continue feeding afterwards
-      result.value.once('end', () => this._handle(this._generator.next())).pipe(this, {
-        end: false,
-      });
+      result.value
+        .once('end', () => this._handle(this._generator.next()))
+        .once('error', err => this.emit('error', err))
+        .pipe(this, { end: false });
       return;
     }
 
     if (isPromise(result.value)) {
       // Resolve promises
-      Promise.resolve(result.value).then((res) => {
-        this._handle(this._generator.next(res));
-      });
+      Promise.resolve(result.value)
+        .then(res => this._handle(this._generator.next(res)))
+        .catch(err => this.emit('error', err));
     }
   }
 
@@ -67,4 +68,4 @@ class CoStream extends PassThrough {
   }
 }
 
-export default CoStream;
+export default GeneratorStream;
