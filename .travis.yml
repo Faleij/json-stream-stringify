@@ -3,6 +3,7 @@ stages:
   - smoke # this ensures a "user" install works properly
   - precache # warm up cache for default Node.js version
   - lint # lint code and docs
+  - build # build distributables
   - test # all tests
   - deploy # all deploy
 
@@ -33,7 +34,7 @@ jobs:
 
     - &node
       script: npm run test
-      node_js: '8'
+      node_js: '10'
 
     - <<: *node
       node_js: '6'
@@ -73,6 +74,9 @@ jobs:
 
     - stage: precache
       script: true
+
+    - stage: precache
+      script: npm run build
     
     - stage: deploy
       script: skip
