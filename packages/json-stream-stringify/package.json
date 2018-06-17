@@ -29,5 +29,8 @@
   "license": "MIT",
   "engines": {
     "node": ">=6.0.0"
+  },
+  "devDependencies": {
+    "rollup-plugin-babel": "^3.0.4"
   }
 }
