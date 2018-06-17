@@ -1,29 +1,84 @@
+# these are executed in order.  each must pass for the next to be run
+stages:
+  - smoke # this ensures a "user" install works properly
+  - precache # warm up cache for default Node.js version
+  - lint # lint code and docs
+  - test # all tests
+
+# defaults
 language: node_js
-node_js:
-- '0.12'
-- '4'
-- '6'
-- '8'
-- '10'
-sudo: false
-before_install:
-- export NODE_VERSION=$(node --version)
-- nvm install 8
-- nvm use 8
-script:
-- npm run build
-- nvm use $NODE_VERSION
-- npm run test
-- nvm use 8
-- npm run coveralls
+node_js: '8'
+# `nvm install` happens before the cache is restored, which means
+# we must install our own npm elsewhere (`~/npm`)
+before_install: |
+  [[ ! -x ~/npm/node_modules/.bin/npm ]] && {
+    # caching feature creates `~/npm` for us
+    cd ~/npm && npm install npm@^6
+    cd -
+  } || true
+  # avoids bugs around https://github.com/travis-ci/travis-ci/issues/5092
+  export PATH=~/npm/node_modules/.bin:$PATH
+# this avoids compilation in most cases (where we don't need it)
+install: npm ci
+cache:
+  directories:
+    - ~/.npm # cache npm's cache
+    - ~/npm # cache latest npm
+
+jobs:
+  include:
+    - script: npm start coverage
+      after_success: npm start coveralls
+
+    - &node
+      script: npm start test
+      node_js: '8'
+
+    - <<: *node
+      node_js: '6'
+
+    - <<: *node
+      node_js: '4'
+
+    - <<: *node
+      node_js: '0.12'
+
+    - stage: lint
+      script: npm start lint
+
+    # smoke tests use default npm.
+    - &smoke
+      stage: smoke
+      env: null
+      before_install: true
+      install: npm install --production
+      script: true
+      cache:
+        directories:
+          - ~/.npm
+          - node_modules # npm install, unlike npm ci, doesn't wipe node_modules
+
+    - <<: *smoke
+      node_js: '8'
+
+    - <<: *smoke
+      node_js: '6'
+
+    - <<: *smoke
+      node_js: '4'
+
+    - <<: *smoke
+      node_js: '0.12'
+
+    - stage: precache
+      script: true
+
 deploy:
-  provider: npm
-  email: faleij@gmail.com
+  provider: script
+  script: bash .travis/deploy.sh
   on:
     tags: true
   skip_cleanup: true
-  before_deploy:
-  - GLOBIGNORE=dist:package*.json:LICENSE:README* ; rm -rf *
-  api_key:
-    # this is encrypted
-    secure: DGC2rGS6/I+yvIUN6CHjt5gAnVZibZEE1NQk3WqhMQMGRqB5czZlTc0aM69LEbP/6uM6xWUf07xaR2KnbaOh+aZWETgxlQQXCHqvbImZKDQZpeKh/iEtjQ0hbzWyOqzf3t38vRPCEGe0C6OzvGRY2IrTN/edvdq/ZXQAAfKMZArypp99B8r8RMkco3HDWztT1ln6K0MR1xRL7sEdui5irhJ3xZt7Pm4RaXuT0MEOw6F3GQDNVdnaoID9zgyZ/npMQh9YcXjOMiJgDhvtDgdkq8FBRddrSVglZgPBgl7h5Z5x/i280tzSJsa22IHlKMOZi4b7bZrWksr9BD1SR7C14uJQp8hn5GjxqFVK5/AN/hA9iy4Kzb8Rs0Py/d6USyYlo9yQMEeLzXuP2VE7fFmE9viA1k8KHTFy8Mjwcwu1bRdHptyAmyL1TdSQSnZyFs0wMbWGjyZHkPDveDJ2rv+pD8vrlTxHOkklGHzFT3xWoyu9ClDh7/0t/25a4x+T9qeQerummWUkLTqEnoP/k8KQAYwKLox2R6hGKcDOHMW0SC4Mh4g4lwowFRKMeZ81FI0MDnsaJXlZatlAVGIxy56i9P3JEJrqt7xnA+9H2s23d2MAtSiDZIGWFdwXRlX1ERxMq8DxsjH1N5u1B4tS5EnH4QurN0AN3z3F4eFMjEhHzMI=
+env:
+  global:
+    secure: KFTSqBjB5xgGTgc1aInX/qHXM7U51G1fIMO5eJygsL9I0VDyUV7XoO096fTWR1uv8VZMWARgOFrb+ZF7jRuRo2hCfN937vVeH+dVFULil5Nkx/y6gOapCzU67mU8Y6W5wJ4xTabi4u7DndUIN+G8ffVcW1FHD7yu2Oc0eclzH6GFxuW6HBW/FCbuuRGjnkS8gthI1DqX8TirZrGGBmTC/QwdulSjOs8xo2QEpUuYdnFHe93q2j6dztJ0i+WOau/U/IFgvJIxLqgvglVFGUfdCJxYAwealAuWDAlOvMihrF9Tkil7WasttFCkxowbfRbp5TG3twE17uGer09+Q/RzJhr7F7jxi3Oyv0AucSd73g2VQpkuTC9EMgPR5dD1gn1pGlwQOHog90yFzg17bfIUk7deyZulNz784sdazlh3h4qFIjC2MZ9k7xdxYdvybT5pqcAK/tZ1MOIQjFYRxcgc4pWfkygmxF9QrkLX/HqwOY9rUa9D1W7kIgVb24x54hxYl5/Y+S1Ss4fHYXg6o8hxkYk1VRok+GgVO3EveKiE/QO76ouE5E70xcEEahGKIoZK8pFpiz9unPb1ZHlNiAre0TWvR5oxLyNgcTLT2yrEAROFvzMVfk49BqSx/1pkk9VvCxrVeGLIq2stP8gcfcgJ5e12bIa9pvkJMMyaN1C3id8=

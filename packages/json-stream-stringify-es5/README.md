@@ -1,4 +1,4 @@
-# JSON Stream Stringify
+# JSON Stream Stringify ES5
 [![NPM version][npm-image]][npm-url]
 [![NPM Downloads][downloads-image]][downloads-url]
 [![Build Status][travis-image]][travis-url]
@@ -27,10 +27,10 @@ JSON Stringify as a Readable Stream with rescursive resolving of any readable st
 
 ## Install
 
-Note: This is the es6 version, your target environment must support all es6 features.
+Note: This is the es5 version, this requires babel-runtime and babel-polyfill, it might be slower than the es6 version.
 
 ```bash
-npm install --save json-stream-stringify
+npm install --save json-stream-stringify-es5
 ```
 
 ## API
@@ -120,7 +120,7 @@ app.get('/api/users', (req, res, next) => JSONStreamStringify(Users.find().strea
 
 ## Requirements
 
-- ES6 runtime enviroment.
+- ES5 runtime enviroment.
 - Any streams3 conformant library importable as ``require('stream')``, by AMD or ``global.stream``
 
 ## TODO

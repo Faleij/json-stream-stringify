@@ -19,10 +19,7 @@ function createTest(input, expected, ...args) {
         }
         resolve();
       })
-      .once('error', (err) => {
-        err.jsonStream = jsonStream;
-        reject(err);
-      });
+      .once('error', err => reject(Object.assign(err, { jsonStream })));
   });
 }
 

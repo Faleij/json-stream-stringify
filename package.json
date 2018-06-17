@@ -1,16 +1,10 @@
 {
   "name": "json-stream-stringify",
-  "version": "2.0.0",
+  "private": true,
   "description": "JSON.Stringify as a readable stream",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Faleij/json-stream-stringify.git"
-  },
-  "browser": "./dist/es5.umd.js",
-  "main": "./dist/es6.umd.js",
-  "peerDependencies": {
-    "babel-runtime": "*",
-    "babel-polyfill": "*"
   },
   "devDependencies": {
     "babel-core": "6.26.3",
@@ -27,34 +21,36 @@
     "eslint-plugin-react": "^7.4.0",
     "expect.js": "0.3.1",
     "istanbul": "0.4.5",
+    "lerna": "^2.11.0",
     "mocha": "3.5.3",
-    "nyc": "^12.0.2",
+    "nyc": "12.0.2",
     "rollup": "0.60.4",
     "rollup-plugin-babel": "3.0.4",
     "rollup-plugin-node-globals": "^1.2.1"
   },
   "scripts": {
-    "build": "rollup -c rollup.config.js",
-    "build:watch": "rollup -c rollup.config.js --watch",
-    "test": "mocha --require babel-core/register -R spec",
-    "coverage": "nyc npm test",
-    "coveralls": "npm run coverage && nyc report --reporter=text-lcov | coveralls"
+    "bootstrap": "lerna bootstrap",
+    "lint": "eslint . && echo \"eslint: no lint errors\"",
+    "build": "lerna run build",
+    "build:watch": "lerna run build:watch",
+    "test": "lerna run test",
+    "coverage": "lerna run coverage",
+    "coveralls": "lerna run coveralls",
+    "release": "lerna publish --skip-git"
   },
-  "keywords": [
-    "JSON",
-    "stringify",
-    "stream",
-    "string",
-    "streamify",
-    "read",
-    "readable",
-    "co",
-    "generator",
-    "iterable"
-  ],
-  "author": "Faleij",
+  "author": "Faleij <faleij@gmail.com> (https://github.com/faleij)",
+  "bugs": {
+    "url": "https://github.com/faleij/json-stream-stringify/issues"
+  },
   "license": "MIT",
   "engines": {
-    "node": ">=0.12.0"
+    "node": ">=8.0.0"
+  },
+  "workspaces": [
+    "packages/*",
+    "*"
+  ],
+  "dependencies": {
+    "babel-preset-env": "^1.7.0"
   }
 }

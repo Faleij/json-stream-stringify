@@ -1,0 +1,33 @@
+{
+  "name": "json-stream-stringify",
+  "description": "JSON.Stringify as a readable stream",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Faleij/json-stream-stringify.git"
+  },
+  "main": "./dist/umd.js",
+  "scripts": {
+    "build": "rollup -c rollup.config.js",
+    "build:watch": "rollup -c rollup.config.js --watch",
+    "test": "mocha --require babel-core/register -R spec ../../test/*",
+    "coverage": "nyc npm test",
+    "coveralls": "nyc report --reporter=text-lcov | coveralls"
+  },
+  "keywords": [
+    "JSON",
+    "stringify",
+    "stream",
+    "string",
+    "streamify",
+    "read",
+    "readable",
+    "co",
+    "generator",
+    "iterable"
+  ],
+  "author": "Faleij <faleij@gmail.com> (https://github.com/faleij)",
+  "license": "MIT",
+  "engines": {
+    "node": ">=6.0.0"
+  }
+}
