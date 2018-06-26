@@ -20,8 +20,6 @@ install() {
 }
 
 build() {
-	# Save current version
-	NODE_VERSION=$(node --version)
 	echo build:restore:NODE_VERSION=$NODE_VERSION
 	
 	# Builds with node v10
