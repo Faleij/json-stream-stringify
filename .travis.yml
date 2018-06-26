@@ -1,37 +1,7 @@
-# these are executed in order.  each must pass for the next to be run
-stages:
-  - smoke # this ensures a "user" install works properly
-  - lint # lint code and docs
-  - build # build distributables
-  - test # all tests
-  - deploy # all deploy
-
-# defaults
-language: node_js
-node_js: '8'
-# `nvm install` happens before the cache is restored, which means
-# we must install our own npm elsewhere (`~/npm`)
-before_install: |
-  [[ ! -x ~/npm/node_modules/.bin/npm ]] && {
-    # caching feature creates `~/npm` for us
-    cd ~/npm && npm install npm@^6
-    cd -
-  } || true
-  # avoids bugs around https://github.com/travis-ci/travis-ci/issues/5092
-  export PATH=~/npm/node_modules/.bin:$PATH
-install: npm install
-cache:
-  directories:
-    - ~/.npm # cache npm's cache
-    - ~/npm # cache latest npm
-
 jobs:
   include:
-    - script: npm run coverage
-      after_success: npm run coveralls
-
     - &node
-      script: npm run test
+      script: bash .travis/ci.sh build test
       node_js: '10'
 
     - <<: *node
@@ -43,47 +13,8 @@ jobs:
     - <<: *node
       node_js: '0.12'
 
-    - stage: lint
-      script: npm run lint
-
-    # smoke tests use default npm.
-    - &smoke
-      stage: smoke
-      env: null
-      before_install: true
-      install: npm install --production
-      script: true
-      cache:
-        directories:
-          - ~/.npm
-          - node_modules # npm install, unlike npm ci, doesn't wipe node_modules
-
-    - <<: *smoke
-      node_js: '10'
-
-    - <<: *smoke
+    - script: bash .travis/ci.sh build coverage deploy
       node_js: '8'
-
-    - <<: *smoke
-      node_js: '6'
-
-    - <<: *smoke
-      node_js: '4'
-
-    - <<: *smoke
-      node_js: '0.12'
-
-    - stage: build
-      script: npm run build
-    
-    - stage: deploy
-      script: skip
-      deploy:
-        provider: script
-        script: bash .travis/deploy.sh
-        on:
-          tags: true
-        skip_cleanup: true
 
 env:
   global:

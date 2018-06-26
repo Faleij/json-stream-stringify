@@ -7,45 +7,82 @@
 
 JSON Stringify as a Readable Stream with rescursive resolving of any readable streams and Promises.
 
-## Important and Breaking changes in v2
- - Rejected promises and stream errors are now handled and emitted as errors through jsonStreamStringify instances
- - Cycling is off by default
+## Important and Breaking Changes in v2
+ - ⚠️ Cycling is off by default 
+ - ⚠️ JsonStreamStringify is now a constructor; use ``new`` operator
+ - 100% Code Coverage! 🎉
+ - Space argument finally implemented! 🎉
+ - Removed dependecy on global JSON.stringify, Async and Generators
+ - JsonStreamStringify is now compiled with babel to target ES5 (polyfills needed)
+ - Rejected promises and input stream errors are now handled and emitted as errors
+ - Added cyclic structure detection to prevent infinite streaming
 
 ## Main Features
-- Promises are rescursively resolved and the result is piped through JSONStreamStreamify
-- Streams (Object mode) are piped through a transform which pipes the data through JSONStreamStreamify (enabling recursive resolving)
-- Streams (Non-Object mode) is stringified and piped
+- Promises are rescursively resolved and the result is piped through JsonStreamStringify
+- Streams (Object mode) are recursively read and output as arrays
+- Streams (Non-Object mode) are output as a single string
 - Output is streamed optimally with as small chunks as possible
 - Cycling of cyclical structures and dags using [Douglas Crockfords cycle algorithm](https://github.com/douglascrockford/JSON-js)*
-- Great memory management with reference release after processing
-- Stream pressure handling
-- Tested and runs on ES5** and ES6
-- Bundled as UMD
+- Great memory management with reference release after processing and WeakMap/Set reference handling
+- Optimal stream pressure handling
+- Tested and runs on ES5** and ES2015
+- Bundled as UMD and Module
 
 \* Off by default since v2  
-\** Install the es5 package ``json-stream-stringify-es5``
+\** With polyfills  
 
 ## Install
 
-Note: This is the es6 version, your target environment must support all es6 features.
-
 ```bash
 npm install --save json-stream-stringify
+
+# Optional if you need polyfills
+# Make sure to include these in your bundle or load the polyfilled version of this library
+npm install --save @babel/polyfill @babel/runtime
 ```
+
+## Usage
+Using Node v6+ with ESM / Webpack / Browserify / Rollup
+```javascript
+// No Polyfills
+import JsonStreamStringify from 'JsonStreamStringify';
+```
+```javascript
+// Polyfilled; loads only needed polyfills from @babel/polyfill @babel/runtime
+import JsonStreamStringify from 'JsonStreamStringify/module.polyfill';
+```
+
+Using Node v6 or later / Other ES2015 environments
+```javascript
+const JsonStreamStringify = require('JsonStreamStringify');
+```
+
+Using Node v4 or earlier / Other ES5 environments
+```javascript
+var JsonStreamStringify = require('JsonStreamStringify/umd.polyfill');
+```
+
+**Note:** This library is primarily written for LTS versions of NodeJS. Other environments are not tested.  
+**Note on non-NodeJS usage:** This module depends on node streams library. Any Streams3 compatible implementation should work - as long as it exports a Readable class, with instances that looks like readable streams.  
+**Note on Polyfills:** I have taken measures to minify global pollution of polyfills but this library **does not load polyfills by default** because the polyfills modify native object prototypes and it goes against the [W3C recommendations](https://www.w3.org/2001/tag/doc/polyfills/#advice-for-library-and-framework-authors).
 
 ## API
 
-### jsonStreamStringify(value[, replacer[, spaces[, cycle]]])  
+### `new JsonStreamStringify(value[, replacer[, spaces[, cycle]]])`  
 
 Streaming conversion of ``value`` to JSON string.
 
 **Parameters**
 - ``value`` ``Any``  
   Data to convert to JSON.
+
 - ``replacer`` Optional ``Function(key, value)`` or ``Array``  
- As a function the returned value replaces the value associated with the key.  [Details](https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#The_replacer_parameter)  
+  As a function the returned value replaces the value associated with the key. [Details](https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#The_replacer_parameter)  
  As an array all other keys are filtered. [Details](https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify#Example_with_an_array)
-- ``spaces`` Optional ``String`` or ``Number`` **Not yet implemented**
+ 
+- ``spaces`` Optional ``String`` or ``Number``  
+  A String or Number object that's used to insert white space into the output JSON string for readability purposes. If this is a Number, it indicates the number of space characters to use as white space. If this is a String, the string is used as white space. If this parameter is not recognized as a finite number or valid string, no white space is used.
+
 - ``cycle`` Optional ``Boolean``  
   ``true`` enables cycling of cyclical structures and dags.  
   To restore cyclical structures; use [Crockfords Retrocycle method](https://github.com/douglascrockford/JSON-js) on the parsed object (not included in this module).
@@ -53,18 +90,19 @@ Streaming conversion of ``value`` to JSON string.
 **Returns**
 - ``JsonStreamStringify`` object that exposes a [Streams3 interface](https://nodejs.org/api/stream.html#stream_class_stream_readable).
 
-### jsonStreamStringify#stack
+### jsonStreamStringify#path
 
 **Returns**
-- ``Array[String, Number]`` Current path being serialized as an array of Strings (keys of objects) and Numbers (index into arrays).  
+- ``Array[String, Number]``  
+  Current path being serialized as an array of Strings (keys of objects) and Numbers (index into arrays).  
   Can be transformed into an mpath with ``.join('.')``.  
-  Useful in conjunction with ``.on('error', ...)``, for knowing what path may have caused the error.
+  Useful in conjunction with ``.on('error', ...)``, for figuring out what path may have caused the error.
 
 ## Example Usage
 ```javascript
-const jsonStreamStringify = require('json-stream-stringify');
+const JsonStreamStringify = require('json-stream-stringify');
 
-const jsonStream = jsonStreamStringify({
+const jsonStream = new JsonStreamStringify({
     // Promises and Streams may resolve more promises and/or streams which will be consumed and processed into json output
     aPromise: Promise.resolve(Promise.resolve("text")),
     aStream: ReadableObjectStream({a:1}, 'str'),
@@ -115,22 +153,8 @@ c
 
 ## Practical Example with Express + Mongoose
 ```javascript
-app.get('/api/users', (req, res, next) => JSONStreamStringify(Users.find().stream()).pipe(res));
+app.get('/api/users', (req, res, next) => new JsonStreamStringify(Users.find().stream()).pipe(res));
 ```
-
-## Requirements
-
-- ES6 runtime enviroment.
-- Any streams3 conformant library importable as ``require('stream')``, by AMD or ``global.stream``
-
-## TODO
-- Space option
-
-Feel free to contribute.
-
-## Technical Notes
-Uses toJSON when available, and JSON.stringify to stringify everything but objects and arrays.  
-Streams with ObjectMode=true are output as arrays while ObjectMode=false output as a concatinated string (each chunk is piped with transforms).
 
 # License
 [MIT](LICENSE)

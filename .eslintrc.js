@@ -6,6 +6,6 @@ module.exports = {
         "linebreak-style": ["error", "unix"],
 
         "no-underscore-dangle": "off",
-        "no-continue": "off",
+        "no-control-regex": "off",
     },
 };

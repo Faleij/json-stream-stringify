@@ -1,53 +1,48 @@
 {
   "name": "json-stream-stringify",
-  "private": true,
   "description": "JSON.Stringify as a readable stream",
+  "version": "2.0.0",
+  "license": "MIT",
+  "author": "Faleij <faleij@gmail.com> (https://github.com/faleij)",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Faleij/json-stream-stringify.git"
   },
-  "devDependencies": {
-    "babel-core": "6.26.3",
-    "babel-plugin-transform-runtime": "6.23.0",
-    "babel-polyfill": "^6.26.0",
-    "babel-preset-env": "1.7.0",
-    "babel-runtime": "^6.26.0",
-    "coveralls": "3.0.1",
-    "eslint": "^4.9.0",
-    "eslint-config-airbnb": "^16.1.0",
-    "eslint-plugin-import": "^2.7.0",
-    "eslint-plugin-jsx-a11y": "^6.0.2",
-    "eslint-plugin-mocha": "^5.0.0",
-    "eslint-plugin-react": "^7.4.0",
-    "expect.js": "0.3.1",
-    "istanbul": "0.4.5",
-    "lerna": "^2.11.0",
-    "mocha": "3.5.3",
-    "nyc": "12.0.2",
-    "rollup": "0.60.4",
-    "rollup-plugin-babel": "3.0.4",
-    "rollup-plugin-node-globals": "^1.2.1"
-  },
-  "scripts": {
-    "bootstrap": "lerna bootstrap",
-    "lint": "eslint . && echo \"eslint: no lint errors\"",
-    "build": "lerna run build",
-    "build:watch": "lerna run build:watch",
-    "test": "lerna run test",
-    "coverage": "lerna run coverage",
-    "coveralls": "lerna run coveralls",
-    "release": "lerna publish --skip-git"
-  },
-  "author": "Faleij <faleij@gmail.com> (https://github.com/faleij)",
   "bugs": {
     "url": "https://github.com/faleij/json-stream-stringify/issues"
   },
-  "license": "MIT",
-  "engines": {
-    "node": ">=8.0.0"
+  "main": "./dist/umd.js",
+  "module": "./dist/module.js",
+  "browser": "./dist/umd.js",
+  "scripts": {
+    "lint": "eslint . && echo \"eslint: no lint errors\"",
+    "build": "rollup -c rollup.config.js",
+    "build:watch": "rollup -c rollup.config.js --watch",
+    "test": "mocha --require @babel/register -R spec -b",
+    "coverage": "nyc npm test",
+    "coveralls": "nyc report --reporter=text-lcov | coveralls"
   },
-  "workspaces": [
-    "packages/*",
-    "*"
-  ]
+  "devDependencies": {
+    "@babel/cli": "^7.0.0-beta.51",
+    "@babel/core": "^7.0.0-beta.51",
+    "@babel/plugin-transform-runtime": "^7.0.0-beta.51",
+    "@babel/polyfill": "^7.0.0-beta.51",
+    "@babel/preset-env": "^7.0.0-beta.51",
+    "@babel/register": "^7.0.0-beta.51",
+    "@babel/runtime": "^7.0.0-beta.51",
+    "babel-plugin-external-helpers": "^6.22.0",
+    "babel-register": "^6.26.0",
+    "coveralls": "3.0.1",
+    "eslint": "^4.19.1",
+    "eslint-config-airbnb": "^17.0.0",
+    "eslint-plugin-import": "^2.12.0",
+    "eslint-plugin-jsx-a11y": "^6.0.3",
+    "eslint-plugin-react": "^7.9.1",
+    "expect.js": "0.3.1",
+    "istanbul": "0.4.5",
+    "mocha": "3.5.3",
+    "nyc": "12.0.2",
+    "rollup": "0.60.4",
+    "rollup-plugin-babel": "^4.0.0-beta.5"
+  }
 }

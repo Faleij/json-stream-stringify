@@ -1,0 +1,10 @@
+{
+    "presets": [
+        ["@babel/preset-env", {
+            "forceAllTransforms": true,
+            "modules": "cjs",
+            "debug": false,
+            "useBuiltIns": "usage"
+        }]
+    ]
+}
