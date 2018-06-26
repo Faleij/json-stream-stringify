@@ -1,7 +1,7 @@
 
 import { Readable } from 'stream';
 import expect from 'expect.js';
-import JsonStreamStringify from '.';
+import JsonStreamStringify from './JsonStreamStringify';
 
 function createTest(input, expected, ...args) {
   return () => new Promise((resolve, reject) => {
