@@ -5,7 +5,7 @@ export default [
   {
     input: './src/JsonStreamStringify.js',
     output: [{
-      file: './dist/umd.polyfilled.js',
+      file: './dist/umd.polyfill.js',
       format: 'umd',
       name: 'jsonStreamStringify',
       sourcemap: true,

@@ -39,12 +39,12 @@ JSON Stringify as a Readable Stream with rescursive resolving of any readable st
 npm install --save json-stream-stringify
 
 # Optional if you need polyfills
-# Make sure to include these in your bundle or load the polyfilled version of this library
+# Make sure to include these if you target NodeJS <=v6 or browsers
 npm install --save @babel/polyfill @babel/runtime
 ```
 
 ## Usage
-Using Node v6+ with ESM / Webpack / Browserify / Rollup
+Using Node v8 or later with ESM / Webpack / Browserify / Rollup
 ```javascript
 // No Polyfills
 import JsonStreamStringify from 'JsonStreamStringify';
@@ -54,12 +54,12 @@ import JsonStreamStringify from 'JsonStreamStringify';
 import JsonStreamStringify from 'JsonStreamStringify/module.polyfill';
 ```
 
-Using Node v6 or later / Other ES2015 environments
+Using Node >=8 / Other ES2015 environments
 ```javascript
 const JsonStreamStringify = require('JsonStreamStringify');
 ```
 
-Using Node v4 or earlier / Other ES5 environments
+Using Node <=6 / Other ES5 environments
 ```javascript
 var JsonStreamStringify = require('JsonStreamStringify/umd.polyfill');
 ```
