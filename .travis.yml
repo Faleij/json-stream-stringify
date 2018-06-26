@@ -18,7 +18,7 @@ jobs:
 
     - &node
       stage: test
-      script: bash .travis/script.sh install build test
+      script: bash .travis/script.sh install test
       node_js: '10'
 
     - <<: *node
