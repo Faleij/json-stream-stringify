@@ -1,7 +1,17 @@
 #!/bin/bash
 
 build() {
+	# Save current version
+	NODE_VERSION=$(node --version)
+	nvm install 8
+	# Builds with node v8
+	nvm use 8
+	# install deps
+	npm install
+	# actual build
 	npm run build
+	# Restore current version
+	nvm use $NODE_VERSION
 }
 
 test() {
@@ -27,7 +37,11 @@ deploy() {
 	npm config set registry https://registry.npmjs.org/
 	npm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN}
 
-	npm run publish
+	if [ "$TRAVIS_BRANCH" == "master" ]
+	then
+	# npm publish
+	echo "do actual publish"
+	fi
 }
 
 # Loop over arguments
