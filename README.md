@@ -4,6 +4,7 @@
 [![Build Status][travis-image]][travis-url]
 [![Coverage Status][coveralls-image]][coveralls-url]
 [![License][license-image]](LICENSE)
+[![Donate][donate-image]][donate-url]
 
 JSON Stringify as a Readable Stream with rescursive resolving of any readable streams and Promises.
 
@@ -171,3 +172,5 @@ Copyright (c) 2016 Faleij [faleij@gmail.com](mailto:faleij@gmail.com)
 [coveralls-image]: https://coveralls.io/repos/Faleij/json-stream-stringify/badge.svg?branch=master&service=github
 [coveralls-url]: https://coveralls.io/github/Faleij/json-stream-stringify?branch=master
 [license-image]: https://img.shields.io/badge/license-MIT-blue.svg
+[donate-image]: https://img.shields.io/badge/Donate-PayPal-green.svg
+[donate-url]: https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=faleij%40gmail%2ecom&lc=GB&item_name=faleij&item_number=jsonStreamStringify&currency_code=SEK&bn=PP%2dDonationsBF%3abtn_donate_SM%2egif%3aNonHosted
