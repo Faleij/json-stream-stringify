@@ -1,10 +1,11 @@
 #!/bin/bash
 
+# Save current version
+NODE_VERSION=$(node --version)
+
 source $NVM_DIR/nvm.sh
 
 install() {
-	# Save current version
-	NODE_VERSION=$(node --version)
 	echo install:restore:NODE_VERSION=$NODE_VERSION
 	nvm install 10
 
