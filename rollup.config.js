@@ -25,6 +25,7 @@ export default [
     ],
     plugins: [
       babel({
+        babelrc: false,
         presets: [
           [('@babel/preset-env'), {
             forceAllTransforms: true,
@@ -76,6 +77,7 @@ export default [
     ],
     plugins: [
       babel({
+        babelrc: false,
         presets: [
           [('@babel/preset-env'), {
             forceAllTransforms: true,

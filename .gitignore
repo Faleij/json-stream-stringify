@@ -39,4 +39,7 @@ jspm_packages
 # Build artifacts
 dist
 
+# Test folder, because tests are compiled
+test/*
+
 *.gitignore*

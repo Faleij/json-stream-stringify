@@ -16,9 +16,9 @@
   "browser": "./umd.js",
   "scripts": {
     "lint": "eslint . && echo \"eslint: no lint errors\"",
-    "build": "rollup -c rollup.config.js",
+    "build": "rollup -c rollup.config.js && babel test-src --out-dir test",
     "build:watch": "rollup -c rollup.config.js --watch",
-    "test": "mocha --require @babel/register -R spec -b",
+    "test": "mocha -R spec -b",
     "coverage": "nyc npm test",
     "coveralls": "nyc report --reporter=text-lcov | coveralls"
   },
