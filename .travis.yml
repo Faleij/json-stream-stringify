@@ -1,7 +1,13 @@
+# defaults
+language: node_js
+node_js: '8'
+
 jobs:
   include:
+    - script: bash .travis/script.sh build coverage deploy
+
     - &node
-      script: bash .travis/ci.sh build test
+      script: bash .travis/script.sh build test
       node_js: '10'
 
     - <<: *node
@@ -12,9 +18,6 @@ jobs:
 
     - <<: *node
       node_js: '0.12'
-
-    - script: bash .travis/ci.sh build coverage deploy
-      node_js: '8'
 
 env:
   global:
