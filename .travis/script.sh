@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source $NVM_DIR/nvm.sh
+
 build() {
 	# Save current version
 	NODE_VERSION=$(node --version)
