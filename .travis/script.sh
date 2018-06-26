@@ -2,14 +2,23 @@
 
 source $NVM_DIR/nvm.sh
 
-build() {
+install() {
 	# Save current version
 	NODE_VERSION=$(node --version)
 	nvm install 8
-	# Builds with node v8
+	# install with node v8
 	nvm use 8
 	# install deps
 	npm install
+	# Restore current version
+	nvm use $NODE_VERSION
+}
+
+build() {
+	# Save current version
+	NODE_VERSION=$(node --version)
+	# Builds with node v8
+	nvm use 8
 	# actual build
 	npm run build
 	# Restore current version

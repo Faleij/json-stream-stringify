@@ -1,5 +1,6 @@
 # these are executed in order.  each must pass for the next to be run
 stages:
+  - lint
   - test
   - deploy
 
@@ -11,9 +12,13 @@ install: true
 
 jobs:
   include:
+    - stage: lint
+      script: bash .travis/script.sh install lint
+      node_js: '8'
+
     - &node
       stage: test
-      script: bash .travis/script.sh build test
+      script: bash .travis/script.sh install build test
       node_js: '10'
 
     - <<: *node
@@ -25,8 +30,9 @@ jobs:
     - <<: *node
       node_js: '0.12'
 
+      # coverage includes testing, thats why 8 is not in test stage
     - stage: deploy
-      script: bash .travis/script.sh lint build coverage deploy
+      script: bash .travis/script.sh install build coverage deploy
       node_js: '8'
 
 env:
