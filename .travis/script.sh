@@ -6,10 +6,14 @@ install() {
 	# Save current version
 	NODE_VERSION=$(node --version)
 	nvm install 8
+
 	# install with node v8
 	nvm use 8
+	npm install npm@6.1.0 -g
+
 	# install deps
-	npm install
+	npm ci
+
 	# Restore current version
 	nvm use $NODE_VERSION
 }
@@ -17,10 +21,13 @@ install() {
 build() {
 	# Save current version
 	NODE_VERSION=$(node --version)
+	
 	# Builds with node v8
 	nvm use 8
+	
 	# actual build
 	npm run build
+	
 	# Restore current version
 	nvm use $NODE_VERSION
 }
@@ -51,8 +58,6 @@ deploy() {
 	# Set the NPM access token we will use to publish.
 	npm config set registry https://registry.npmjs.org/
 	npm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN}
-
-	ls
 
 	# dry publish run for non master
 	npm pack
