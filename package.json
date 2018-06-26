@@ -11,9 +11,9 @@
   "bugs": {
     "url": "https://github.com/faleij/json-stream-stringify/issues"
   },
-  "main": "./dist/umd.js",
-  "module": "./dist/module.js",
-  "browser": "./dist/umd.js",
+  "main": "./umd.js",
+  "module": "./module.js",
+  "browser": "./umd.js",
   "scripts": {
     "lint": "eslint . && echo \"eslint: no lint errors\"",
     "build": "rollup -c rollup.config.js",

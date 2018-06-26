@@ -1,3 +1,8 @@
+# these are executed in order.  each must pass for the next to be run
+stages:
+  - test
+  - deploy
+
 # defaults
 language: node_js
 node_js: '8'
@@ -6,9 +11,8 @@ install: true
 
 jobs:
   include:
-    - script: bash .travis/script.sh lint build coverage deploy
-
     - &node
+      stage: test
       script: bash .travis/script.sh build test
       node_js: '10'
 
@@ -20,6 +24,10 @@ jobs:
 
     - <<: *node
       node_js: '0.12'
+
+    - stage: deploy
+      script: bash .travis/script.sh lint build coverage deploy
+      node_js: '8'
 
 env:
   global:
