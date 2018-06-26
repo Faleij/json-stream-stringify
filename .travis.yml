@@ -14,12 +14,12 @@ jobs:
   include:
     - stage: lint
       script: bash .travis/script.sh install lint
-      node_js: '8'
+      node_js: '10'
 
     - &node
       stage: test
       script: bash .travis/script.sh install test
-      node_js: '10'
+      node_js: '8'
 
     - <<: *node
       node_js: '6'
@@ -30,10 +30,10 @@ jobs:
     - <<: *node
       node_js: '0.12'
 
-      # coverage includes testing, thats why 8 is not in test stage
+      # coverage includes testing, thats why 10 is not in test stage
     - stage: deploy
       script: bash .travis/script.sh install build coverage deploy
-      node_js: '8'
+      node_js: '10'
 
 env:
   global:

@@ -5,11 +5,10 @@ source $NVM_DIR/nvm.sh
 install() {
 	# Save current version
 	NODE_VERSION=$(node --version)
-	nvm install 8
+	nvm install 10
 
-	# install with node v8
-	nvm use 8
-	npm install npm@6.1.0 -g
+	# install with node v10
+	nvm use 10
 
 	# install deps
 	npm ci
@@ -22,8 +21,8 @@ build() {
 	# Save current version
 	NODE_VERSION=$(node --version)
 	
-	# Builds with node v8
-	nvm use 8
+	# Builds with node v10
+	nvm use 10
 	
 	# actual build
 	npm run build
