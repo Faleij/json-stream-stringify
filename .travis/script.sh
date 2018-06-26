@@ -52,9 +52,13 @@ deploy() {
 	npm config set registry https://registry.npmjs.org/
 	npm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN}
 
+	ls
+
+	# dry publish run for non master
+	npm pack
 	if [ "$TRAVIS_BRANCH" == "master" ]
 	then
-		npm publish
+		npm publish $(ls json-stream-stringify-*.tgz)
 	fi
 }
 
