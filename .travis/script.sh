@@ -20,6 +20,10 @@ test() {
 	npm run test
 }
 
+lint() {
+	npm run lint
+}
+
 coverage() {
 	npm run coverage
 	npm run coveralls
@@ -41,8 +45,7 @@ deploy() {
 
 	if [ "$TRAVIS_BRANCH" == "master" ]
 	then
-	# npm publish
-	echo "do actual publish"
+		npm publish
 	fi
 }
 

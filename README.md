@@ -8,14 +8,15 @@
 JSON Stringify as a Readable Stream with rescursive resolving of any readable streams and Promises.
 
 ## Important and Breaking Changes in v2
- - ⚠️ Cycling is off by default 
- - ⚠️ JsonStreamStringify is now a constructor; use ``new`` operator
+ - Completely rewritten from scratch
  - 100% Code Coverage! 🎉
  - Space argument finally implemented! 🎉
- - Removed dependecy on global JSON.stringify, Async and Generators
+ - ⚠️ Cycling is off by default 
+ - ⚠️ JsonStreamStringify is now a constructor; use ``new`` operator
+ - Removed dependency on global JSON.stringify, Async/Await and Generators
  - JsonStreamStringify is now compiled with babel to target ES5 (polyfills needed)
  - Rejected promises and input stream errors are now handled and emitted as errors
- - Added cyclic structure detection to prevent infinite streaming
+ - Added cyclic structure detection to prevent infinite recursion
 
 ## Main Features
 - Promises are rescursively resolved and the result is piped through JsonStreamStringify

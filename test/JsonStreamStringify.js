@@ -6,7 +6,6 @@ import JsonStreamStringify from '../src/JsonStreamStringify';
 function createTest(input, expected, ...args) {
   return () => new Promise((resolve, reject) => {
     let str = '';
-    const warnings = [];
     const jsonStream = new JsonStreamStringify(input, ...args)
       .on('data', (data) => {
         str += data.toString();
@@ -18,12 +17,8 @@ function createTest(input, expected, ...args) {
           reject(err);
           return;
         }
-        setImmediate(() => resolve({
-          jsonStream,
-          warnings,
-        }));
+        setImmediate(() => resolve({ jsonStream }));
       })
-      .on('warning', warn => console.warn(warn) || warnings.push(warn))
       .once('error', err => reject(Object.assign(err, {
         jsonStream,
       })));
@@ -164,8 +159,8 @@ describe('JsonStreamStringify', () => {
   it('{a:[ReadableStream(1, Error, 2)]} should emit Error', () => {
     const err = new Error('should emit error');
     return createTest({
-        a: [ReadableStream(1, err, 2)],
-      }, '')()
+      a: [ReadableStream(1, err, 2)],
+    }, '')()
       .then(() => new Error('exepected error to be emitted'), (err1) => {
         // expect(err.jsonStream.stack).to.eql(['a', 0]);
         expect(err1).to.be(err);
@@ -227,7 +222,7 @@ describe('JsonStreamStringify', () => {
 
   describe('space option', () => {
     it('{ a: 1 } should be {\\n  "a": 1\\n}', createTest({
-      a: 1
+      a: 1,
     }, '{\n  "a": 1\n}', undefined, 2));
 
     it('[1] should be [\\n  1\\n  ]', createTest([1], '[\n  1\n]', undefined, 2));
@@ -304,7 +299,7 @@ describe('JsonStreamStringify', () => {
     try {
       stream.processPrimitive({
         value: {},
-        type: 'Primitive'
+        type: 'Primitive',
       });
     } catch (err) {
       expect(err.message).to.be('Unknown type "object". Please file an issue!');

@@ -6,7 +6,7 @@ install: true
 
 jobs:
   include:
-    - script: bash .travis/script.sh build coverage deploy
+    - script: bash .travis/script.sh lint build coverage deploy
 
     - &node
       script: bash .travis/script.sh build test
