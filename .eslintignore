@@ -1,0 +1,6 @@
+dist
+coverage
+examples
+node_modules
+*.gitignore*
+test

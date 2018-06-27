@@ -1,10 +1,40 @@
+# these are executed in order.  each must pass for the next to be run
+stages:
+  - lint
+  - test
+  - deploy
+
+# defaults
 language: node_js
-node_js:
-- '6'
-- '8'
-- '10'
-sudo: false
-script:
-  - "npm run coverage"
-after_script:
-  - "test -e ./coverage/lcov.info && cat ./coverage/lcov.info | coveralls"
+node_js: '10'
+# disable automatic npm install
+install: true
+
+jobs:
+  include:
+    - stage: lint
+      script: bash .travis/script.sh install lint
+      node_js: '10'
+
+    - &node
+      stage: test
+      script: bash .travis/script.sh install build test
+      node_js: '8'
+
+    - <<: *node
+      node_js: '6'
+
+    - <<: *node
+      node_js: '4'
+
+    - <<: *node
+      node_js: '0.12'
+
+      # coverage includes testing, thats why 10 is not in test stage
+    - stage: deploy
+      script: bash .travis/script.sh install build coverage deploy
+      node_js: '10'
+
+env:
+  global:
+    secure: KFTSqBjB5xgGTgc1aInX/qHXM7U51G1fIMO5eJygsL9I0VDyUV7XoO096fTWR1uv8VZMWARgOFrb+ZF7jRuRo2hCfN937vVeH+dVFULil5Nkx/y6gOapCzU67mU8Y6W5wJ4xTabi4u7DndUIN+G8ffVcW1FHD7yu2Oc0eclzH6GFxuW6HBW/FCbuuRGjnkS8gthI1DqX8TirZrGGBmTC/QwdulSjOs8xo2QEpUuYdnFHe93q2j6dztJ0i+WOau/U/IFgvJIxLqgvglVFGUfdCJxYAwealAuWDAlOvMihrF9Tkil7WasttFCkxowbfRbp5TG3twE17uGer09+Q/RzJhr7F7jxi3Oyv0AucSd73g2VQpkuTC9EMgPR5dD1gn1pGlwQOHog90yFzg17bfIUk7deyZulNz784sdazlh3h4qFIjC2MZ9k7xdxYdvybT5pqcAK/tZ1MOIQjFYRxcgc4pWfkygmxF9QrkLX/HqwOY9rUa9D1W7kIgVb24x54hxYl5/Y+S1Ss4fHYXg6o8hxkYk1VRok+GgVO3EveKiE/QO76ouE5E70xcEEahGKIoZK8pFpiz9unPb1ZHlNiAre0TWvR5oxLyNgcTLT2yrEAROFvzMVfk49BqSx/1pkk9VvCxrVeGLIq2stP8gcfcgJ5e12bIa9pvkJMMyaN1C3id8=
