@@ -6,7 +6,6 @@ NODE_VERSION=$(node --version)
 source $NVM_DIR/nvm.sh
 
 install() {
-	echo install:restore:NODE_VERSION=$NODE_VERSION
 	nvm install 10
 
 	# install with node v10
@@ -20,8 +19,6 @@ install() {
 }
 
 build() {
-	echo build:restore:NODE_VERSION=$NODE_VERSION
-	
 	# Builds with node v10
 	nvm use 10
 	
