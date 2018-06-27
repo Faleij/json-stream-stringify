@@ -59,10 +59,11 @@ deploy() {
 	npm config set registry https://registry.npmjs.org/
 	npm config set //registry.npmjs.org/:_authToken ${NPM_TOKEN}
 
-	# dry publish run for non master
+	# dry publish run
 	npm pack
-	if [ "$TRAVIS_BRANCH" == "master" ]
-	then
+
+	# publish only when tagged and not a pull request
+	if [[ "${TRAVIS_TAG}" != "" ]] && [[ "${TRAVIS_PULL_REQUEST}" = "false" ]]; then
 		npm publish $(ls json-stream-stringify-*.tgz)
 	fi
 }
