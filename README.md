@@ -47,21 +47,21 @@ npm install --save @babel/polyfill @babel/runtime
 Using Node v8 or later with ESM / Webpack / Browserify / Rollup
 ```javascript
 // No Polyfills
-import JsonStreamStringify from 'JsonStreamStringify';
+import JsonStreamStringify from 'json-stream-stringify';
 ```
 ```javascript
 // Polyfilled; loads only needed polyfills from @babel/polyfill @babel/runtime
-import JsonStreamStringify from 'JsonStreamStringify/module.polyfill';
+import JsonStreamStringify from 'json-stream-stringify/module.polyfill';
 ```
 
 Using Node >=8 / Other ES2015 environments
 ```javascript
-const JsonStreamStringify = require('JsonStreamStringify');
+const JsonStreamStringify = require('json-stream-stringify');
 ```
 
 Using Node <=6 / Other ES5 environments
 ```javascript
-var JsonStreamStringify = require('JsonStreamStringify/umd.polyfill');
+var JsonStreamStringify = require('json-stream-stringify/umd.polyfill');
 ```
 
 **Note:** This library is primarily written for LTS versions of NodeJS. Other environments are not tested.  
