@@ -84,6 +84,23 @@ describe('JsonStreamStringify', () => {
     return v;
   }));
 
+  it('{a:1, b:2} should be {"a":1}', createTest({
+    a: 1,
+    b: 2,
+  }, '{"a":1}', (k, v) => {
+    if (k === 'a') {
+      expect(v).to.be(1);
+      return v;
+    }
+    if (k === 'b') {
+      expect(v).to.be(2);
+      return undefined;
+    }
+    if (k === undefined) return v;
+    expect(['a', 'b', undefined]).to.contain(k);
+    return v;
+  }));
+
   it('{a:1,b:2} should be {"b":2}', createTest({
     a: 1,
     b: 2,
@@ -93,11 +110,24 @@ describe('JsonStreamStringify', () => {
     a: 1,
   }, '{"a":1}'));
 
-  it('{a:function(){}} should be {}', createTest({
+  it('{a:1,b:undefined} should be {"a":1}', createTest({
+    a: 1,
+    b: undefined,
+  }, '{"a":1}'));
+
+  it('{a:1,b:Promise(undefined)} should be {"a":1}', createTest({
+    a: 1,
+    b: Promise.resolve(undefined),
+  }, '{"a":1}'));
+
+  it('{a:function(){}, b: "b"} should be {"b": "b"}', createTest({
     a() {},
-  }, '{}'));
+    b: 'b',
+  }, '{"b":"b"}'));
 
   it('[function(){}] should be [null]', createTest([function a() {}], '[null]'));
+  
+  it('[function(){}, undefined] should be [null,null]', createTest([function a() {}, undefined], '[null,null]'));
 
   it('{a:date} should be {"a":date.toJSON()}', createTest({
     a: date,

@@ -120,7 +120,7 @@ class JsonStreamStringify extends Readable {
     return value;
   }
 
-  addToStack(value, key, index) {
+  addToStack(value, key, index, parent) {
     let realValue = value;
     if (this.replacerFunction) {
       realValue = this.replacerFunction(key || index, realValue, this);
@@ -138,6 +138,13 @@ class JsonStreamStringify extends Readable {
       }
     }
     let type = getType(realValue);
+    if (((parent && parent.type === 'Array') ? true : realValue !== undefined) && type !== 'Promise') {
+      if (parent && !parent.first) {
+        this._push(',');
+      }
+      /* eslint-disable-next-line no-param-reassign */
+      if (parent) parent.first = false;
+    }
     if (realValue !== undefined && type !== 'Promise' && key) {
       if (this.gap) {
         this._push(`\n${this.gap.repeat(this.depth)}"${escapeString(key)}": `);
@@ -172,6 +179,8 @@ class JsonStreamStringify extends Readable {
       index,
       type,
       value: realValue,
+      parent,
+      first: true,
     };
 
     if (type === 'Object') {
@@ -199,7 +208,6 @@ class JsonStreamStringify extends Readable {
         this.error = true;
         this.emit('error', err);
       });
-      obj.first = true;
     }
     this.stack.unshift(obj);
     return obj;
@@ -222,10 +230,8 @@ class JsonStreamStringify extends Readable {
     const end = stackItemEnd[type];
     if (isObject && !item.isEmpty && this.gap) this._push(`\n${this.gap.repeat(this.depth)}`);
     if (end) this._push(end);
-    if (item.addSeparatorAfterEnd) {
-      this._push(',');
-    }
-    this.stack.splice(this.stack.indexOf(item), 1);
+    const stackIndex = this.stack.indexOf(item);
+    this.stack.splice(stackIndex, 1);
   }
 
   _push(data) {
@@ -254,6 +260,7 @@ class JsonStreamStringify extends Readable {
   }
 
   processObject(current) {
+    // when no keys left, remove obj from stack
     if (!current.unread.length) {
       this.removeFromStack(current);
       return;
@@ -261,7 +268,7 @@ class JsonStreamStringify extends Readable {
     const key = current.unread.shift();
     const value = current.value[key];
 
-    this.addToStack(value, current.type === 'Object' && key, current.type === 'Array' && key).addSeparatorAfterEnd = !!current.unread.length;
+    this.addToStack(value, current.type === 'Object' && key, current.type === 'Array' && key, current);
   }
 
   processArray(current) {
@@ -319,14 +326,8 @@ class JsonStreamStringify extends Readable {
 
   processPromise(current) {
     return recursiveResolve(current.value).then((value) => {
-      const {
-        addSeparatorAfterEnd,
-      } = current;
-      /* eslint-disable-next-line no-param-reassign */
-      current.addSeparatorAfterEnd = false;
       this.removeFromStack(current);
-      this.addToStack(value, current.key, current.index)
-        .addSeparatorAfterEnd = addSeparatorAfterEnd;
+      this.addToStack(value, current.key, current.index, current.parent);
     });
   }
 
