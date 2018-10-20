@@ -16,22 +16,22 @@ _test_stage: &_test_stage
 
 jobs:
   include:
-#    - stage: lint
-#      script: bash .travis/script.sh install lint
-#      node_js: '10'
-#
-#    - <<: *_test_stage
-#      node_js: '8'
-#
-#    - <<: *_test_stage
-#      node_js: '6'
-#
-#    - <<: *_test_stage
-#      node_js: '4'
-#
-#    - <<: *_test_stage
-#      node_js: '0.12'
-#
+    - stage: lint
+      script: bash .travis/script.sh install lint
+      node_js: '10'
+
+    - <<: *_test_stage
+      node_js: '8'
+
+    - <<: *_test_stage
+      node_js: '6'
+
+    - <<: *_test_stage
+      node_js: '4'
+
+    - <<: *_test_stage
+      node_js: '0.12'
+
     # coverage includes testing, thats why 10 is not in test stage
     - stage: deploy
       script: bash .travis/script.sh install build coverage deploy
