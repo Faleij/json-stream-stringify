@@ -16,27 +16,27 @@ _test_stage: &_test_stage
 
 jobs:
   include:
-    - stage: lint
-      script: bash .travis/script.sh install lint
-      node_js: '10'
-
-    - <<: *_test_stage
-      node_js: '8'
-
-    - <<: *_test_stage
-      node_js: '6'
-
-    - <<: *_test_stage
-      node_js: '4'
-
-    - <<: *_test_stage
-      node_js: '0.12'
-
-      # coverage includes testing, thats why 10 is not in test stage
+#    - stage: lint
+#      script: bash .travis/script.sh install lint
+#      node_js: '10'
+#
+#    - <<: *_test_stage
+#      node_js: '8'
+#
+#    - <<: *_test_stage
+#      node_js: '6'
+#
+#    - <<: *_test_stage
+#      node_js: '4'
+#
+#    - <<: *_test_stage
+#      node_js: '0.12'
+#
+    # coverage includes testing, thats why 10 is not in test stage
     - stage: deploy
       script: bash .travis/script.sh install build coverage deploy
       node_js: '10'
 
 env:
   global:
-    secure: nzlvXMSCAy6xB3RxDfFJTE8c0eP9LsK45/d77+AeXCTywI5yIpAAnXhfRBwpAVsiug8sPGgPPJ7jla4sCuecxUfLXBoQ/0foPlBEgt/mEUeGEZev6rBV0HE6GU5MSUi/Z/lv0YOTqzbC66MSos4yNivmWPJHe37KfDMWdjT2M2ogTGu9aQAfyCRlVnKcpR08s54M4wdU2joTpiIn1UCupgYm6ELAG6j9Ch394Z5T7Yz7MD29Ht3oyupM3T2hvN/KGYcyROyXE+dIVxr/hWC2KT6CpJXWJvZQcgCD0CXwJySNOgmIhdvB5gSG2fYT4MqNuiFjVZlSi+was0l5u98wE6oVRKkWmQgdbBIygEir71iUaQHSSCNT18FZRu/0r2FHXvD3A4fdxXwK4KXo9xl9LfK/zvCPSwGhodEIxYzjwEEFkKqd9FndzOV2zdD+QFyid4vl7GT2eG4UYL5BT594MlLxVMDHslGbLIM8EhPOBnZ3cVTBjx4chkU1CpWCykaNYcFNa8yMqLH4zbQsy1462VrF8vTa9QfAYfU3zdOjBLE3AC/fKHIra0soqh4iC8prYnRmxkcXavAFR2Lsb9z20qLZA2JuVxYl8Q1FUjAWcVS38E0OkRQb7PXm/LabA3rxBzG0YdyHBgC1CZtXEOJ9U0SrZiXGu+iqSrdB4YCVcaA=
+    secure: i4C2q0IH9jzMI35MPe9DUuB+jpGKWyGkC/4SR4goTWbsPIEiRHAEpNhkIdViIr0uH0rx74gkW8qBXMLoFrofEyZD7U2+ReoXzpMMjAtJW30cArRlcHrEVaACNhkqmAnvigG1bbkHHREYcH9pdHH7mt570vkPTg/8jgFfu6YzIKguvyrTZDUs/jLra8uxbmhH7pcsKzPl3pQtnKP096JLUChf3TbWYvpiOz5aICcuxxH/wKKVd0nYcqYOLuQUKn+SOHlT5knhQ2KXUJC9HKNLOYABKlRKl9uyzJ8yAjrqWBxeExvkzQYcDxRlKASJ3EBLnwDvCHR2DywnwMufQyyTIM2yNZBB1ybpgLtujZYWavuModQEn0TEm7IBR7MXRbqloh/aEYj4m/TK4OFmLfXBBQ+f3FHmKrwM0C1scKrkJ1Xpd8PRtzT7bYi8LXokbXDf3nftOTaDSuZqhGWS6OX7eSNrp+OWTy17uChWkrLiThtcqYIG2la5u7l7YR6M3tRILJVbMxg8e7WUvaVZu2OUMH7BmqpYdRjbd/7CAM+Z8/lsXrh+txbxTdDRlhwTrZkAtefdQB5VCZECPjxMAJOpSDCKFvCml3uzpIA/nhKcpr2hNdkcY7dEbM7fBAyW4fRDd0PKEoxlMrLTd1c1JofgM4sfUcEzzSiYSyOeqS/7bZk=
