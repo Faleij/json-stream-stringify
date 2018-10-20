@@ -10,24 +10,26 @@ node_js: '10'
 # disable automatic npm install
 install: true
 
+_test_stage: &_test_stage
+  stage: test
+  script: bash .travis/script.sh install build test
+
 jobs:
   include:
     - stage: lint
       script: bash .travis/script.sh install lint
       node_js: '10'
 
-    - &node
-      stage: test
-      script: bash .travis/script.sh install build test
+    - <<: *_test_stage
       node_js: '8'
 
-    - <<: *node
+    - <<: *_test_stage
       node_js: '6'
 
-    - <<: *node
+    - <<: *_test_stage
       node_js: '4'
 
-    - <<: *node
+    - <<: *_test_stage
       node_js: '0.12'
 
       # coverage includes testing, thats why 10 is not in test stage
@@ -37,4 +39,4 @@ jobs:
 
 env:
   global:
-    secure: "V5h4IJT+Hyj8NxWHLwPuSW6wsrfUwNmtp4QXIgP2uHTgcwtFFC8vi+NAbGN/n3LQxxY3t6wukH0aACZIynX5MBYpwfIHWUlipnYn8uPPLpxrwxb18C6hTBDxMtq4gaBJGsAZWJI7WcoPG81KIH32mz8TMbuKHx6yw331Cjt7W019yFOu7D1nx7TOAy4GZJUkmkkQKfbSReQwFW6ilaPwf+HaxxytdRLbFPYuP2gp3qxR4zgYR6MqBP/EHaw63j7G+7euSDXm7or5uebkoQqbqcmedpVy3mDe04mV/b33OgsS+zfTXRzODVW9Bfl+Krtis6Y7BpR/O9ID5gMX+g86BZgDWuCgEe+qIFM/IJZ/bFC+g5xhERDr516VXlgYoc6K1FZmWvFGsp1z25/cnEXMC6+C/xkHT8UYQAt7XZFchsE7IMSoC7W/WErmN+A5tgFD2mvtA9tm9RvkGnReqTmtGQD/hI4DEaRcy8UzIZBUfA6jy9w5T45P1R6nHOsP2TJ+UeV/lcXXge/mSDZk0Uy3vRRWUcM0rq9KiasN5bF4YYA4ziDlLtGLWEReMATaFbU8ieeRZYaUYPLqw2GGgCm5ExG5uJfI/Eh/2UMYNLnBTNcQ2W+HSJwgAMzmuqlU5sp896V44ovWtOp2MeGC2gOCcj0w1ZDqakyUbRgDiy2xHNg="
+    secure: nzlvXMSCAy6xB3RxDfFJTE8c0eP9LsK45/d77+AeXCTywI5yIpAAnXhfRBwpAVsiug8sPGgPPJ7jla4sCuecxUfLXBoQ/0foPlBEgt/mEUeGEZev6rBV0HE6GU5MSUi/Z/lv0YOTqzbC66MSos4yNivmWPJHe37KfDMWdjT2M2ogTGu9aQAfyCRlVnKcpR08s54M4wdU2joTpiIn1UCupgYm6ELAG6j9Ch394Z5T7Yz7MD29Ht3oyupM3T2hvN/KGYcyROyXE+dIVxr/hWC2KT6CpJXWJvZQcgCD0CXwJySNOgmIhdvB5gSG2fYT4MqNuiFjVZlSi+was0l5u98wE6oVRKkWmQgdbBIygEir71iUaQHSSCNT18FZRu/0r2FHXvD3A4fdxXwK4KXo9xl9LfK/zvCPSwGhodEIxYzjwEEFkKqd9FndzOV2zdD+QFyid4vl7GT2eG4UYL5BT594MlLxVMDHslGbLIM8EhPOBnZ3cVTBjx4chkU1CpWCykaNYcFNa8yMqLH4zbQsy1462VrF8vTa9QfAYfU3zdOjBLE3AC/fKHIra0soqh4iC8prYnRmxkcXavAFR2Lsb9z20qLZA2JuVxYl8Q1FUjAWcVS38E0OkRQb7PXm/LabA3rxBzG0YdyHBgC1CZtXEOJ9U0SrZiXGu+iqSrdB4YCVcaA=
