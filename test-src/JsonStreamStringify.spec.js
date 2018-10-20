@@ -1,4 +1,3 @@
-
 import { Readable } from 'stream';
 import expect from 'expect.js';
 import JsonStreamStringify from './JsonStreamStringify';
@@ -126,7 +125,7 @@ describe('JsonStreamStringify', () => {
   }, '{"b":"b"}'));
 
   it('[function(){}] should be [null]', createTest([function a() {}], '[null]'));
-  
+
   it('[function(){}, undefined] should be [null,null]', createTest([function a() {}, undefined], '[null,null]'));
 
   it('{a:date} should be {"a":date.toJSON()}', createTest({
