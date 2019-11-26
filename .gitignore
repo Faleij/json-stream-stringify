@@ -17,6 +17,9 @@ coverage
 # nyc test coverage
 .nyc_output
 
+# typescript cache?
+.rpt2_cache
+
 # Grunt intermediate storage (http://gruntjs.com/creating-plugins#storing-task-files)
 .grunt
 
@@ -38,6 +41,8 @@ jspm_packages
 
 # Build artifacts
 dist
+lib
+tmp
 
 # Test folder, because tests are compiled
 test/*
