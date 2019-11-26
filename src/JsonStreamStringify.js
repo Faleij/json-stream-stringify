@@ -189,8 +189,9 @@ class JsonStreamStringify extends Readable {
       obj.isEmpty = !obj.unread.length;
     } else if (type === 'Array') {
       this.depth += 1;
-      obj.unread = Array.from(Array(realValue.length).keys());
-      obj.isEmpty = !obj.unread.length;
+      obj.unread = realValue.length;
+      obj.arrayLength = obj.unread;
+      obj.isEmpty = !obj.unread;
     } else if (type.startsWith('Readable')) {
       this.depth += 1;
       if (realValue._readableState.ended) {
@@ -267,12 +268,20 @@ class JsonStreamStringify extends Readable {
     }
     const key = current.unread.shift();
     const value = current.value[key];
-
-    this.addToStack(value, current.type === 'Object' && key, current.type === 'Array' && key, current);
+    this.addToStack(value, key, undefined, current);
   }
 
   processArray(current) {
-    return this.processObject(current);
+    const key = current.unread;
+    if (!key) {
+      this.removeFromStack(current);
+      return;
+    }
+    const index = current.arrayLength - key;
+    const value = current.value[index];
+    /* eslint-disable-next-line no-param-reassign */
+    current.unread -= 1;
+    this.addToStack(value, undefined, index, current);
   }
 
   processPrimitive(current) {
