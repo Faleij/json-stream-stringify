@@ -190,6 +190,7 @@ class JsonStreamStringify extends Readable {
     } else if (type === 'Array') {
       this.depth += 1;
       obj.unread = realValue.length;
+      obj.arrayLength = obj.unread;
       obj.isEmpty = !obj.unread;
     } else if (type.startsWith('Readable')) {
       this.depth += 1;
@@ -267,8 +268,7 @@ class JsonStreamStringify extends Readable {
     }
     const key = current.unread.shift();
     const value = current.value[key];
-
-    this.addToStack(value, current.type === 'Object' && key, current.type === 'Array' && key, current);
+    this.addToStack(value, key, undefined, current);
   }
 
   processArray(current) {
@@ -277,12 +277,11 @@ class JsonStreamStringify extends Readable {
       this.removeFromStack(current);
       return;
     }
-    const index = current.value.length - key;
+    const index = current.arrayLength - key;
     const value = current.value[index];
-    /* eslint-disable no-param-reassign */
+    /* eslint-disable-next-line no-param-reassign */
     current.unread -= 1;
-    /* eslint-enable no-param-reassign */
-    this.addToStack(value, false, index, current);
+    this.addToStack(value, undefined, index, current);
   }
 
   processPrimitive(current) {
