@@ -6,6 +6,12 @@ const presets = [
     forceAllTransforms: true,
     debug: false,
     useBuiltIns: 'usage',
+    targets: {
+      chrome: 58,
+      ie: 8,
+      node: '0.12',
+    },
+    corejs: 3,
   }],
 ];
 
@@ -124,11 +130,10 @@ export default [
         presets,
         plugins: ['istanbul'],
         exclude: 'node_modules/**',
+        runtimeHelpers: true,
       }),
     ],
     external(v) {
-      console.log('external', v);
-      if (v.startsWith('core-js')) return true;
       return !(/([\\/]test-src[\\/])|(^.\/)|(^\0)/).test(v);
     },
   },
