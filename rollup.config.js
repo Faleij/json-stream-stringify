@@ -58,7 +58,6 @@ export default [
       }),
     ],
     external(v) {
-      console.log('external0', v);
       return [
         'stream',
         'core-js/',
@@ -102,7 +101,6 @@ export default [
       }),
     ],
     external(v) {
-      console.log('external0', v);
       return [
         'stream',
         'core-js/',

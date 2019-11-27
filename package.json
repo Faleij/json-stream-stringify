@@ -17,7 +17,7 @@
   "types": "./lib/JsonStreamStringify.d.ts",
   "nyc": {
     "sourceMap": true,
-    "instrument": false,
+    "instrument": true,
     "exclude": [
       "test-src/**/*"
     ]
@@ -26,8 +26,7 @@
     "lint": "tslint -c tslint.json 'src/**/*.ts' && echo \"tslint: no lint errors\"",
     "build": "rollup -c rollup.config.js ",
     "build:watch": "npm run build -- --watch",
-    "test": "mocha --exit --require source-map-support/register -R spec -b test/*.spec.js",
-    "testtest": "mocha --require source-map-support/register -R spec -b",
+    "test": "mocha --require source-map-support/register -R spec -b test/*.spec.js",
     "coverage": "nyc npm test && nyc report --reporter=html",
     "coveralls": "nyc report --reporter=text-lcov | coveralls"
   },
@@ -37,14 +36,13 @@
     "@babel/preset-env": "^7.7.4",
     "@babel/preset-typescript": "^7.7.4",
     "@types/mocha": "^5.2.5",
-    "babel-plugin-istanbul": "^5.1.0",
     "clean-webpack-plugin": "^0.1.19",
     "coveralls": "3.0.2",
     "es-check": "^4.0.0",
     "expect.js": "0.3.1",
     "istanbul": "0.4.5",
-    "mocha": "6.2.2",
-    "nyc": "14.1.1",
+    "mocha": "3.5.3",
+    "nyc": "12.0.2",
     "rollup": "1.26.3",
     "rollup-plugin-babel": "^4.3.3",
     "rollup-plugin-typescript2": "^0.25.2",
