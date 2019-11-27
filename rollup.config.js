@@ -126,7 +126,6 @@ export default [
         babelrc: false,
         extensions: ['.js', '.ts'],
         presets,
-        plugins: ['istanbul'],
         exclude: 'node_modules/**',
         runtimeHelpers: true,
       }),
