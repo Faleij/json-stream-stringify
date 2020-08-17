@@ -157,7 +157,7 @@ c
 ```javascript
 app.get('/api/users', (req, res, next) => {
   res.type('json'); // Required for proper handling by test frameworks and some clients
-  new JsonStreamStringify(Users.find().stream()).pipe(res)
+  new JsonStreamStringify(Users.find().stream()).pipe(res);
 });
 ```
 
