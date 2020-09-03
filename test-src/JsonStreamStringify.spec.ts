@@ -3,7 +3,7 @@
 import { Readable } from 'stream';
 // tslint:disable-next-line:import-name
 import expect from 'expect.js';
-import { default as JsonStreamStringify } from './JsonStreamStringify';
+import JsonStreamStringify from './JsonStreamStringify';
 
 function createTest(input, expected, ...args) {
   return () => new Promise((resolve, reject) => {

@@ -1,7 +1,7 @@
 /* istanbul ignore file */
 
 // tslint:disable-next-line:import-name
-import { default as _JsonStreamStringify } from '..';
+import _JsonStreamStringify from '..';
 
 const isNode8orLater = parseInt(process.version.split('.')[0].slice(1), 10) >= 8;
 
