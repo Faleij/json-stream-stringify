@@ -43,7 +43,7 @@ jobs:
       script: ./ci install build coverage deploy
       node_js: '10'
       # only deploy when tagged on master
-      if: branch = master AND tag IS present
+      if: branch = master AND type = push
 
 env:
   global:
