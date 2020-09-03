@@ -1,0 +1,23 @@
+{
+    "compilerOptions": {
+        "module": "es2015",
+        "target": "es2016",
+        "noImplicitAny": false,
+        "preserveConstEnums": true,
+        "sourceMap": true,
+        "declaration": true,
+        "declarationDir": "dist",
+        "moduleResolution": "node",
+        "types": [
+            "mocha",
+            "node"
+        ],
+        "outDir": "dist"
+    },
+    "include": [
+        "src/**/*.ts"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
+}

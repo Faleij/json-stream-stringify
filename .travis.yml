@@ -12,12 +12,17 @@ install: true
 
 _test_stage: &_test_stage
   stage: test
-  script: bash .travis/script.sh install build test
+  script: ./ci install build test
+  if: tag IS blank
 
 jobs:
   include:
     - stage: lint
-      script: bash .travis/script.sh install lint
+      script: ./ci install lint
+      node_js: '10'
+      if: tag IS blank
+
+    - <<: *_test_stage
       node_js: '10'
 
     - <<: *_test_stage
@@ -34,8 +39,10 @@ jobs:
 
     # coverage includes testing, thats why 10 is not in test stage
     - stage: deploy
-      script: bash .travis/script.sh install build coverage deploy
+      script: ./ci install build coverage deploy
       node_js: '10'
+      # only deploy when tagged on master
+      if: branch = master AND tag IS present
 
 env:
   global:

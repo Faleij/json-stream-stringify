@@ -13,35 +13,50 @@ const meta = {
   '\\': '\\\\',
 };
 
-function isReadableStream(value) {
+function isReadableStream(value): boolean {
   return typeof value.read === 'function'
-        && typeof value.once === 'function'
-        && typeof value.removeListener === 'function'
-        && typeof value._readableState === 'object';
+      && typeof value.pause === 'function'
+      && typeof value.resume === 'function'
+      && typeof value.pipe === 'function'
+      && typeof value.once === 'function'
+      && typeof value.removeListener === 'function';
 }
 
-function getType(value) {
-  if (!value) return 'Primitive';
-  if (typeof value.then === 'function') return 'Promise';
-  if (isReadableStream(value)) return `Readable${value._readableState.objectMode ? 'Object' : 'String'}`;
-  if (Array.isArray(value)) return 'Array';
-  if (typeof value === 'object' || value instanceof Object) return 'Object';
-  return 'Primitive';
+function getType(value): Types {
+  if (!value) return Types.Primitive;
+  if (typeof value.then === 'function') return Types.Promise;
+  if (isReadableStream(value)) return value._readableState.objectMode ? Types.ReadableObject : Types.ReadableString;
+  if (Array.isArray(value)) return Types.Array;
+  if (typeof value === 'object' || value instanceof Object) return Types.Object;
+  return Types.Primitive;
 }
 
-const stackItemEnd = {
-  Array: ']',
-  Object: '}',
-  ReadableString: '"',
-  ReadableObject: ']',
-};
+enum Types {
+  Array,
+  Object,
+  ReadableString,
+  ReadableObject,
+  Primitive,
+  Promise,
+}
 
-const stackItemOpen = {
-  Array: '[',
-  Object: '{',
-  ReadableString: '"',
-  ReadableObject: '[',
-};
+const stackItemOpen = [];
+stackItemOpen[Types.Array] = '[';
+stackItemOpen[Types.Object] = '{';
+stackItemOpen[Types.ReadableString] = '"';
+stackItemOpen[Types.ReadableObject] = '[';
+
+const stackItemEnd = [];
+stackItemEnd[Types.Array] = ']';
+stackItemEnd[Types.Object] = '}';
+stackItemEnd[Types.ReadableString] = '"';
+stackItemEnd[Types.ReadableObject] = ']';
+
+const processFunctionLookupTable = [];
+
+for (const [key, val] of Object.entries(Types)) {
+  if (typeof val === 'number') processFunctionLookupTable[val] = `process${key}`;
+}
 
 function escapeString(string) {
   // Modified code, original code by Douglas Crockford
@@ -58,7 +73,7 @@ function escapeString(string) {
   });
 }
 
-function quoteString(string) {
+function quoteString(string: string) {
   return `"${escapeString(string)}"`;
 }
 
@@ -79,35 +94,68 @@ function readAsPromised(stream, size) {
   return Promise.resolve(value);
 }
 
-function recursiveResolve(promise) {
-  return promise.then((res) => {
-    const resType = getType(res);
-    return resType === 'Promise' ? recursiveResolve(res) : res;
-  });
+function recursiveResolve(promise: Promise<any>): Promise<any> {
+  return promise.then(res => getType(res) === Types.Promise ? recursiveResolve(res) : res);
 }
 
+interface IStackItem {
+  key?: string;
+  index?: number;
+  type: Types;
+  value: any;
+  parent?: IStackItem;
+  first: boolean;
+  unread?: string[] | number;
+  isEmpty?: boolean;
+  arrayLength?: number;
+  readCount?: number;
+  end?: boolean;
+  addSeparatorAfterEnd?: boolean;
+}
+
+interface IStackItemArray extends IStackItem {
+  unread: number;
+  isEmpty: boolean;
+  arrayLength: number;
+}
+
+interface IStackItemObject extends IStackItem {
+  unread: string[];
+}
+
+type VisitedWeakMap = WeakMap<any, string>;
+type VisitedWeakSet = WeakSet<any>;
 class JsonStreamStringify extends Readable {
-  constructor(value, replacer, spaces, cycle) {
-    super({});
-    let gap;
+  private visited: VisitedWeakMap | VisitedWeakSet;
+  private stack: IStackItem[] = [];
+  private replacerFunction?: Function;
+  private replacerArray?: any[];
+  private gap?: string;
+  private depth: number = 0;
+  private error: boolean;
+  private pushCalled: boolean = false;
+  private end: boolean = false;
+  private isReading: boolean = false;
+  private readMore: boolean = false;
+
+  constructor(value, replacer?: Function | any[], spaces?: number | string, private cycle: boolean = false) {
+    super();
     const spaceType = typeof spaces;
     if (spaceType === 'string' || spaceType === 'number') {
-      gap = Number.isFinite(spaces) ? ' '.repeat(spaces) : spaces;
+      this.gap = Number.isFinite(spaces as number) ? ' '.repeat(spaces as number) : spaces as string;
     }
     Object.assign(this, {
       visited: cycle ? new WeakMap() : new WeakSet(),
-      cycle,
-      stack: [],
       replacerFunction: replacer instanceof Function && replacer,
       replacerArray: Array.isArray(replacer) && replacer,
-      gap,
-      depth: 0,
     });
+    if (replacer instanceof Function) this.replacerFunction = replacer;
+    if (Array.isArray(replacer)) this.replacerArray = replacer;
     this.addToStack(value);
   }
 
-  cycler(key, value) {
-    const existingPath = this.visited.get(value);
+  private cycler(key, value) {
+    const existingPath = (this.visited as VisitedWeakMap).get(value);
     if (existingPath) {
       return {
         $ref: existingPath,
@@ -115,12 +163,12 @@ class JsonStreamStringify extends Readable {
     }
     let path = this.path();
     if (key !== undefined) path.push(key);
-    path = path.map(v => `[${(Number.isInteger(v) ? v : quoteString(v))}]`);
-    this.visited.set(value, path.length ? `$${path.join('')}` : '$');
+    path = path.map(v => `[${(Number.isInteger(v as number) ? v : quoteString(v as string))}]`);
+    (this.visited as VisitedWeakMap).set(value, path.length ? `$${path.join('')}` : '$');
     return value;
   }
 
-  addToStack(value, key, index, parent) {
+  private addToStack(value, key?: string, index?: number, parent?: IStackItem) {
     let realValue = value;
     if (this.replacerFunction) {
       realValue = this.replacerFunction(key || index, realValue, this);
@@ -138,21 +186,20 @@ class JsonStreamStringify extends Readable {
       }
     }
     let type = getType(realValue);
-    if (((parent && parent.type === 'Array') ? true : realValue !== undefined) && type !== 'Promise') {
+    if (((parent && parent.type === Types.Array) ? true : realValue !== undefined) && type !== Types.Promise) {
       if (parent && !parent.first) {
         this._push(',');
       }
-      /* eslint-disable-next-line no-param-reassign */
       if (parent) parent.first = false;
     }
-    if (realValue !== undefined && type !== 'Promise' && key) {
+    if (realValue !== undefined && type !== Types.Promise && key) {
       if (this.gap) {
         this._push(`\n${this.gap.repeat(this.depth)}"${escapeString(key)}": `);
       } else {
         this._push(`"${escapeString(key)}":`);
       }
     }
-    if (type !== 'Primitive') {
+    if (type !== Types.Primitive) {
       if (this.cycle) {
         // run cycler
         realValue = this.cycler(key || index, realValue);
@@ -165,7 +212,7 @@ class JsonStreamStringify extends Readable {
             key: key || index,
           });
         }
-        this.visited.add(realValue);
+        (this.visited as VisitedWeakSet).add(realValue);
       }
     }
 
@@ -174,29 +221,29 @@ class JsonStreamStringify extends Readable {
     const open = stackItemOpen[type];
     if (open) this._push(open);
 
-    const obj = {
+    const obj: IStackItem = {
       key,
       index,
       type,
-      value: realValue,
       parent,
+      value: realValue,
       first: true,
     };
 
-    if (type === 'Object') {
+    if (type === Types.Object) {
       this.depth += 1;
       obj.unread = Object.keys(realValue);
       obj.isEmpty = !obj.unread.length;
-    } else if (type === 'Array') {
+    } else if (type === Types.Array) {
       this.depth += 1;
       obj.unread = realValue.length;
-      obj.arrayLength = obj.unread;
+      obj.arrayLength = <number>obj.unread;
       obj.isEmpty = !obj.unread;
-    } else if (type.startsWith('Readable')) {
+    } else if (type === Types.ReadableString || type === Types.ReadableObject) {
       this.depth += 1;
-      if (realValue._readableState.ended) {
+      if (realValue.readableEnded || realValue._readableState?.endEmitted) {
         this.emit('error', new Error('Readable Stream has ended before it was serialized. All stream data have been lost'), realValue, key || index);
-      } else if (realValue._readableState.flowing) {
+      } else if (realValue.readableFlowing || realValue._readableState?.flowing) {
         realValue.pause();
         this.emit('error', new Error('Readable Stream is in flowing mode, data may have been lost. Trying to pause stream.'), realValue, key || index);
       }
@@ -214,12 +261,12 @@ class JsonStreamStringify extends Readable {
     return obj;
   }
 
-  removeFromStack(item) {
+  private removeFromStack(item: IStackItem) {
     const {
       type,
     } = item;
-    const isObject = type === 'Object' || type === 'Array' || type.startsWith('Readable');
-    if (type !== 'Primitive') {
+    const isObject = type === Types.Object || type === Types.Array || type === Types.ReadableString || type === Types.ReadableObject;
+    if (type !== Types.Primitive) {
       if (!this.cycle) {
         this.visited.delete(item.value);
       }
@@ -235,12 +282,13 @@ class JsonStreamStringify extends Readable {
     this.stack.splice(stackIndex, 1);
   }
 
-  _push(data) {
+  // tslint:disable-next-line:function-name
+  private _push(data) {
     this.pushCalled = true;
     this.push(data);
   }
 
-  processReadableObject(current, size) {
+  private processReadableObject(current: IStackItem, size: number) {
     if (current.end) {
       this.removeFromStack(current);
       return undefined;
@@ -251,16 +299,14 @@ class JsonStreamStringify extends Readable {
           if (!current.first) {
             this._push(',');
           }
-          /* eslint-disable no-param-reassign */
           current.first = false;
           this.addToStack(value, undefined, current.readCount);
           current.readCount += 1;
-          /* eslint-enable no-param-reassign */
         }
       });
   }
 
-  processObject(current) {
+  private processObject(current: IStackItemObject) {
     // when no keys left, remove obj from stack
     if (!current.unread.length) {
       this.removeFromStack(current);
@@ -271,58 +317,54 @@ class JsonStreamStringify extends Readable {
     this.addToStack(value, key, undefined, current);
   }
 
-  processArray(current) {
-    const key = current.unread;
+  private processArray(current: IStackItemArray) {
+    const key = <number>current.unread;
     if (!key) {
       this.removeFromStack(current);
       return;
     }
     const index = current.arrayLength - key;
     const value = current.value[index];
-    /* eslint-disable-next-line no-param-reassign */
     current.unread -= 1;
     this.addToStack(value, undefined, index, current);
   }
 
-  processPrimitive(current) {
+  processPrimitive(current: IStackItem) {
     if (current.value !== undefined) {
       const type = typeof current.value;
       let value;
       switch (type) {
-      case 'string':
-        value = quoteString(current.value);
-        break;
-      case 'number':
-        value = Number.isFinite(current.value) ? String(current.value) : 'null';
-        break;
-      case 'boolean':
-      case 'null':
-        value = String(current.value);
-        break;
-      case 'object':
-        if (!current.value) {
-          value = 'null';
+        case 'string':
+          value = quoteString(current.value);
           break;
-        }
-        /* eslint-disable-next-line no-fallthrough */
-      default:
-        // This should never happen, I can't imagine a situation where this executes.
-        // If you find a way, please open a ticket or PR
-        throw Object.assign(new Error(`Unknown type "${type}". Please file an issue!`), {
-          value: current.value,
-        });
+        case 'number':
+          value = Number.isFinite(current.value) ? String(current.value) : 'null';
+          break;
+        case 'boolean':
+          value = String(current.value);
+          break;
+        case 'object':
+          if (!current.value) {
+            value = 'null';
+            break;
+          }
+        default:
+          // This should never happen, I can't imagine a situation where this executes.
+          // If you find a way, please open a ticket or PR
+          throw Object.assign(new Error(`Unknown type "${type}". Please file an issue!`), {
+            value: current.value,
+          });
       }
       this._push(value);
-    } else if (this.stack[1] && (this.stack[1].type === 'Array' || this.stack[1].type === 'ReadableObject')) {
+    } else if (this.stack[1] && (this.stack[1].type === Types.Array || this.stack[1].type === Types.ReadableObject)) {
       this._push('null');
     } else {
-      /* eslint-disable-next-line no-param-reassign */
       current.addSeparatorAfterEnd = false;
     }
     this.removeFromStack(current);
   }
 
-  processReadableString(current, size) {
+  private processReadableString(current: IStackItem, size: number) {
     if (current.end) {
       this.removeFromStack(current);
       return undefined;
@@ -333,19 +375,19 @@ class JsonStreamStringify extends Readable {
       });
   }
 
-  processPromise(current) {
+  private processPromise(current: IStackItem) {
     return recursiveResolve(current.value).then((value) => {
       this.removeFromStack(current);
       this.addToStack(value, current.key, current.index, current.parent);
     });
   }
 
-  processStackTopItem(size) {
+  private processStackTopItem(size: number) {
     const current = this.stack[0];
     if (!current || this.error) return Promise.resolve();
     let out;
     try {
-      out = this[`process${current.type}`](current, size);
+      out = this[processFunctionLookupTable[current.type]](current, size);
     } catch (err) {
       return Promise.reject(err);
     }
@@ -358,12 +400,13 @@ class JsonStreamStringify extends Readable {
       });
   }
 
-  __read(size) {
-    if (this.isRunning || this.error) {
+  // tslint:disable-next-line:function-name
+  private __read(size?: number) {
+    if (this.isReading || this.error) {
       this.readMore = true;
       return undefined;
     }
-    this.isRunning = true;
+    this.isReading = true;
 
     // we must continue to read while push has not been called
     this.readMore = false;
@@ -372,11 +415,11 @@ class JsonStreamStringify extends Readable {
         const readAgain = !this.end && !this.error && (this.readMore || !this.pushCalled);
         if (readAgain) {
           setImmediate(() => {
-            this.isRunning = false;
+            this.isReading = false;
             this.__read();
           });
         } else {
-          this.isRunning = false;
+          this.isReading = false;
         }
       })
       .catch((err) => {
@@ -385,7 +428,8 @@ class JsonStreamStringify extends Readable {
       });
   }
 
-  _read(size) {
+  // tslint:disable-next-line:function-name
+  _read(size: number) {
     this.pushCalled = false;
     this.__read(size);
   }

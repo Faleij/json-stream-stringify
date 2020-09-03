@@ -1,11 +1,25 @@
 import babel from 'rollup-plugin-babel';
+import typescript from 'rollup-plugin-typescript2';
+
+const presets = [
+  ['@babel/preset-env', {
+    forceAllTransforms: true,
+    debug: false,
+    useBuiltIns: 'usage',
+    targets: {
+      chrome: 58,
+      ie: 8,
+      node: '0.12',
+    },
+    corejs: 3,
+  }],
+];
 
 export default [
-  // polyfilled output
   {
-    input: './src/JsonStreamStringify.js',
+    input: './src/JsonStreamStringify.ts',
     output: [{
-      file: './dist/umd.polyfill.js',
+      file: './lib/umd.polyfill.js',
       format: 'umd',
       name: 'jsonStreamStringify',
       sourcemap: true,
@@ -14,7 +28,7 @@ export default [
       },
     },
     {
-      file: './dist/module.polyfill.js',
+      file: './lib/module.polyfill.js',
       format: 'es',
       name: 'jsonStreamStringify',
       sourcemap: true,
@@ -24,24 +38,22 @@ export default [
     },
     ],
     plugins: [
+      typescript(),
       babel({
         babelrc: false,
-        presets: [
-          [('@babel/preset-env'), {
-            forceAllTransforms: true,
-            modules: false,
-            debug: false,
-            useBuiltIns: 'usage',
-          }],
-        ],
+        extensions: ['.js', '.ts'],
+        presets,
         exclude: 'node_modules/**',
+        /*
         plugins: [
           ['@babel/plugin-transform-runtime', {
-            helpers: false,
-            polyfill: true,
+            helpers: true,
             regenerator: false,
+            useESModules: true,
+            corejs: 3,
           }],
         ],
+        */
         runtimeHelpers: true,
       }),
     ],
@@ -55,9 +67,9 @@ export default [
   },
   // no polyfilled output
   {
-    input: './src/JsonStreamStringify.js',
+    input: './src/JsonStreamStringify.ts',
     output: [{
-      file: './dist/umd.js',
+      file: './lib/umd.js',
       format: 'umd',
       name: 'jsonStreamStringify',
       sourcemap: true,
@@ -66,7 +78,7 @@ export default [
       },
     },
     {
-      file: './dist/module.js',
+      file: './lib/module.js',
       format: 'es',
       name: 'jsonStreamStringify',
       sourcemap: true,
@@ -76,19 +88,50 @@ export default [
     },
     ],
     plugins: [
+      typescript(),
       babel({
         babelrc: false,
-        presets: [
-          [('@babel/preset-env'), {
-            forceAllTransforms: true,
-            modules: false,
-            debug: false,
-            useBuiltIns: false,
-          }],
-        ],
+        extensions: ['.js', '.ts'],
+        presets: [['@babel/preset-env', {
+          forceAllTransforms: true,
+          debug: false,
+          useBuiltIns: false,
+        }]],
         exclude: 'node_modules/**',
       }),
     ],
-    external: ['stream'],
+    external(v) {
+      return [
+        'stream',
+        'core-js/',
+        '@babel/runtime',
+      ].some(el => v === el || v.startsWith(el));
+    },
+  },
+  // compile tests
+  {
+    input: './test-src/JsonStreamStringify.spec.ts',
+    output: [{
+      file: './test/JsonStreamStringify.spec.js',
+      format: 'umd',
+      name: 'jsonStreamStringify',
+      sourcemap: true,
+      globals: {
+        stream: 'stream',
+      },
+    }, ],
+    plugins: [
+      typescript(),
+      babel({
+        babelrc: false,
+        extensions: ['.js', '.ts'],
+        presets,
+        exclude: 'node_modules/**',
+        runtimeHelpers: true,
+      }),
+    ],
+    external(v) {
+      return !(/([\\/]test-src[\\/])|(^.\/)|(^\0)/).test(v);
+    },
   },
 ];
