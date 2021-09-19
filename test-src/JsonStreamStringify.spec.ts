@@ -71,6 +71,8 @@ describe('JsonStreamStringify', () => {
 
   it('{a:null} should be {"a":null}', createTest({ a: null }, '{"a":null}'));
 
+  it('{a:0n} should be {"a":0}', createTest({ a: BigInt(0) }, '{"a":0}'));
+
   it('{a:undefined} should be {"a":1}', createTest(
     {
       a: undefined,
