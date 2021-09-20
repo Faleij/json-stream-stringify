@@ -340,6 +340,9 @@ class JsonStreamStringify extends Readable {
         case 'number':
           value = Number.isFinite(current.value) ? String(current.value) : 'null';
           break;
+        case 'bigint':
+          value = String(current.value);
+          break;
         case 'boolean':
           value = String(current.value);
           break;
