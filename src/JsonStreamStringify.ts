@@ -139,7 +139,7 @@ class JsonStreamStringify extends Readable {
   private readMore: boolean = false;
 
   constructor(value, replacer?: Function | any[], spaces?: number | string, private cycle: boolean = false) {
-    super();
+    super({ encoding: 'utf8' });
     const spaceType = typeof spaces;
     if (spaceType === 'string' || spaceType === 'number') {
       this.gap = Number.isFinite(spaces as number) ? ' '.repeat(spaces as number) : spaces as string;
