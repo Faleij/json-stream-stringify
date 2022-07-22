@@ -129,7 +129,7 @@ Get current path begin serialized.
 ## Example Usage
 
 ```javascript
-const JsonStreamStringify = require('json-stream-stringify');
+import { JsonStreamStringify } from 'json-stream-stringify';
 
 const jsonStream = new JsonStreamStringify({
     // Promises and Streams may resolve more promises and/or streams which will be consumed and processed into json output

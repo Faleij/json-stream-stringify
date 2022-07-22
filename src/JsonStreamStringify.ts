@@ -125,7 +125,7 @@ interface IStackItemObject extends IStackItem {
 
 type VisitedWeakMap = WeakMap<any, string>;
 type VisitedWeakSet = WeakSet<any>;
-class JsonStreamStringify extends Readable {
+export class JsonStreamStringify extends Readable {
   private visited: VisitedWeakMap | VisitedWeakSet;
   private stack: IStackItem[] = [];
   private replacerFunction?: Function;
@@ -444,5 +444,3 @@ class JsonStreamStringify extends Readable {
     }) => key || index).filter(v => v || v > -1).reverse();
   }
 }
-
-export default JsonStreamStringify;
