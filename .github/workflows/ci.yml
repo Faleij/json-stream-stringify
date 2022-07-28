@@ -92,7 +92,7 @@ jobs:
     needs: [test, coverage]
     runs-on: ubuntu-latest
     environment: deploy
-    if: startsWith(github.ref, 'refs/tags/') && ${{ !env.ACT }}
+    if: startsWith(github.ref, 'refs/tags/')
     steps:
     - uses: volta-cli/action@v1
       with:
@@ -101,5 +101,6 @@ jobs:
       with:
         name: build-artifact-${{ github.run_number }}
     - run: npm publish
+      if: ${{ !env.ACT }}
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
