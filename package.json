@@ -39,7 +39,7 @@
     "build": "node --max-old-space-size=8192 node_modules/rollup/dist/bin/rollup -c rollup.config.js",
     "build:watch": "npm run build -- --watch",
     "test": "node node_modules/mocha/bin/mocha --require source-map-support/register -R spec -b \"test/*.spec.js\"",
-    "coverage": "nyc npm test"
+    "coverage": "node node_modules/nyc/bin/nyc.js npm test"
   },
   "devDependencies": {
     "@babel/cli": "^7.18.9",
