@@ -97,7 +97,7 @@ jobs:
     needs: [test, coverage]
     runs-on: ubuntu-latest
     environment: deploy
-    if: startsWith(github.ref, 'refs/tags/') && secrets.NPM_TOKEN
+    if: startsWith(github.ref, 'refs/tags/')
     steps:
     - uses: volta-cli/action@v1
       with:
