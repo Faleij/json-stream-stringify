@@ -1,0 +1,12 @@
+node_modules
+.vscode
+dist
+lib
+.github
+test
+coverage
+.nyc_output
+.rpt2_cache
+*.gitignore
+*.gitignore*
+tmp

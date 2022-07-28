@@ -1,11 +1,28 @@
 /* istanbul ignore file */
 
-// tslint:disable-next-line:import-name
-import _JsonStreamStringify from '..';
+import type * as Module from '..';
+import expect from 'expect.js';
 
-const isNode8orLater = parseInt(process.version.split('.')[0].slice(1), 10) >= 8;
+const nodeVersion = parseInt(process.version.split('.')[0].slice(1), 10);
 
+type ModuleType = typeof Module;
 // tslint:disable:variable-name
-const JsonStreamStringify: typeof _JsonStreamStringify = isNode8orLater ? require('../lib/umd.js') : require('../lib/umd.polyfill.js');
+const { JsonStreamStringify }: ModuleType = (nodeVersion >= 8 ? require('../lib/umd/index.js') : require('../lib/umd/polyfill.js'));
 
-export default JsonStreamStringify;
+describe('JsonStreamStringify package', () => {
+  if (nodeVersion === 16) {
+    require('./JsonStreamStringify.esm.js');
+  }
+
+  it('umd should export JsonStreamStringify', async () => {
+    const { JsonStreamStringify: { name } }: ModuleType = require('../lib/umd/index.js');
+    expect(name).to.be('JsonStreamStringify');
+  });
+
+  it('cjs should export JsonStreamStringify', async () => {
+    const { JsonStreamStringify: { name } }: ModuleType = require('../lib/cjs/index.js');
+    expect(name).to.be('JsonStreamStringify');
+  });
+});
+
+export { JsonStreamStringify };

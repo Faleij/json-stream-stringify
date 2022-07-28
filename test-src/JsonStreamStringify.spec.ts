@@ -3,7 +3,7 @@
 import { Readable } from 'stream';
 // tslint:disable-next-line:import-name
 import expect from 'expect.js';
-import JsonStreamStringify from './JsonStreamStringify';
+import { JsonStreamStringify } from './JsonStreamStringify';
 
 function createTest(input, expected, ...args) {
   return () => new Promise((resolve, reject) => {
@@ -19,7 +19,7 @@ function createTest(input, expected, ...args) {
           reject(err);
           return;
         }
-        setImmediate(() => resolve({ jsonStream }));
+        resolve({ jsonStream });
       })
       .once('error', err => reject(Object.assign(err, {
         jsonStream,
@@ -41,6 +41,11 @@ function readableStream(...args) {
 }
 
 describe('JsonStreamStringify', () => {
+  after(() => {
+    // test does not exit cleanly :/
+    setTimeout(() => process.exit(), 500).unref();
+  });
+
   const date = new Date();
 
   it('null should be null', createTest(null, 'null'));
@@ -259,7 +264,7 @@ describe('JsonStreamStringify', () => {
           if (!args.length) return stream.push(null);
           const v = args.shift();
           return stream.push(v);
-        },         1);
+        }, 1);
       },
     });
     return createTest(stream, '"abc"')();

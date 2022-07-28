@@ -9,7 +9,10 @@
 
 JSON Stringify as a Readable Stream with rescursive resolving of any readable streams and Promises.
 
-**_Now with typings!_**
+## Breaking Changes in v3
+
+- [Import formatting has changed](#usage)
+- [CJS output added](#usage)
 
 ## Important and Breaking Changes in v2
 
@@ -53,36 +56,35 @@ npm install --save @babel/polyfill @babel/runtime
 
 Using Node v8 or later with ESM / Webpack / Browserify / Rollup
 
-### No Polyfills, ESM
+### No Polyfills, TS / ESM
 
 ```javascript
-import JsonStreamStringify from 'json-stream-stringify';
+import { JsonStreamStringify } from 'json-stream-stringify';
 ```
 
-### Polyfilled, ESM
+### Polyfilled, TS / ESM
 
 install @babel/runtime-corejs3 and corejs@3
 
 ```javascript
-import JsonStreamStringify from 'json-stream-stringify/module.polyfill';
+import { JsonStreamStringify }  from 'json-stream-stringify/polyfill';
+import { JsonStreamStringify }  from 'json-stream-stringify/module.polyfill'; // force ESM
 ```
 
-### Using Node >=8 / Other ES2015 UMD environments
+### Using Node >=8 / Other ES2015 UMD/CommonJS environments
 
 ```javascript
-const JsonStreamStringify = require('json-stream-stringify');
+const { JsonStreamStringify } = require('json-stream-stringify'); // let module resolution decide UMD or CJS
+const { JsonStreamStringify } = require('json-stream-stringify/umd'); // force UMD
+const { JsonStreamStringify } = require('json-stream-stringify/cjs'); // force CJS
 ```
 
-OR
+### Using Node <=6 / Other ES5 UMD/CommonJS environments
 
 ```javascript
-const JsonStreamStringify = require('json-stream-stringify/umd');
-```
-
-### Using Node <=6 / Other ES5 UMD environments
-
-```javascript
-var JsonStreamStringify = require('json-stream-stringify/umd.polyfill');
+const { JsonStreamStringify } = require('json-stream-stringify/polyfill');
+const { JsonStreamStringify } = require('json-stream-stringify/umd/polyfill');
+const { JsonStreamStringify } = require('json-stream-stringify/cjs/polyfill');
 ```
 
 **Note:** This library is primarily written for LTS versions of NodeJS. Other environments are not tested.  
@@ -126,10 +128,10 @@ Get current path begin serialized.
   Can be transformed into an mpath with ``.join('.')``.  
   Useful in conjunction with ``.on('error', ...)``, for figuring out what path may have caused the error.
 
-## Example Usage
+## Complete Example
 
 ```javascript
-const JsonStreamStringify = require('json-stream-stringify');
+const { JsonStreamStringify } = require('json-stream-stringify');
 
 const jsonStream = new JsonStreamStringify({
     // Promises and Streams may resolve more promises and/or streams which will be consumed and processed into json output
@@ -190,6 +192,10 @@ app.get('/api/users', (req, res, next) => {
   new JsonStreamStringify(Users.find().stream()).pipe(res);
 });
 ```
+
+### Why do I not get proper typings? (Missing .on(...), etc.)
+
+install ``@types/readable-stream`` or ``@types/node`` or create your own ``stream.d.ts`` that exports a ``Readable`` class.
 
 ## License
 

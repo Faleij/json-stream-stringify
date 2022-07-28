@@ -1,21 +1,22 @@
 {
     "compilerOptions": {
-        "module": "es2015",
-        "target": "es2016",
+        "module": "ES2015",
+        "target": "ES2022",
         "noImplicitAny": false,
         "preserveConstEnums": true,
         "sourceMap": true,
-        "declaration": true,
-        "declarationDir": "dist",
         "moduleResolution": "node",
+        "allowSyntheticDefaultImports": true,
+        "esModuleInterop": true,
         "types": [
-            "mocha",
-            "node"
+            "readable-stream",
+            "mocha"
         ],
-        "outDir": "dist"
+        "outDir": "lib"
     },
     "include": [
-        "src/**/*.ts"
+        "src/**/*.ts",
+        "typings"
     ],
     "exclude": [
         "node_modules"

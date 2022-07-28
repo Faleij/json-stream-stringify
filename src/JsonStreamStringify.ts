@@ -1,5 +1,6 @@
 import { Readable } from 'stream';
 
+// eslint-disable-next-line no-control-regex, no-misleading-character-class
 const rxEscapable = /[\\"\u0000-\u001f\u007f-\u009f\u00ad\u0600-\u0604\u070f\u17b4\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g;
 
 // table of character substitutions
@@ -22,15 +23,6 @@ function isReadableStream(value): boolean {
       && typeof value.removeListener === 'function';
 }
 
-function getType(value): Types {
-  if (!value) return Types.Primitive;
-  if (typeof value.then === 'function') return Types.Promise;
-  if (isReadableStream(value)) return value._readableState.objectMode ? Types.ReadableObject : Types.ReadableString;
-  if (Array.isArray(value)) return Types.Array;
-  if (typeof value === 'object' || value instanceof Object) return Types.Object;
-  return Types.Primitive;
-}
-
 enum Types {
   Array,
   Object,
@@ -38,6 +30,15 @@ enum Types {
   ReadableObject,
   Primitive,
   Promise,
+}
+
+function getType(value): Types {
+  if (!value) return Types.Primitive;
+  if (typeof value.then === 'function') return Types.Promise;
+  if (isReadableStream(value)) return value._readableState.objectMode ? Types.ReadableObject : Types.ReadableString;
+  if (Array.isArray(value)) return Types.Array;
+  if (typeof value === 'object' || value instanceof Object) return Types.Object;
+  return Types.Primitive;
 }
 
 const stackItemOpen = [];
@@ -52,11 +53,19 @@ stackItemEnd[Types.Object] = '}';
 stackItemEnd[Types.ReadableString] = '"';
 stackItemEnd[Types.ReadableObject] = ']';
 
-const processFunctionLookupTable = [];
-
+const processFunctionLookupTable = [
+  'processArray',
+  'processObject',
+  'processReadableString',
+  'processReadableObject',
+  'processPrimitive',
+  'processPromise',
+];
+/*
 for (const [key, val] of Object.entries(Types)) {
   if (typeof val === 'number') processFunctionLookupTable[val] = `process${key}`;
 }
+*/
 
 function escapeString(string) {
   // Modified code, original code by Douglas Crockford
@@ -95,7 +104,7 @@ function readAsPromised(stream, size) {
 }
 
 function recursiveResolve(promise: Promise<any>): Promise<any> {
-  return promise.then(res => getType(res) === Types.Promise ? recursiveResolve(res) : res);
+  return promise.then((res) => (getType(res) === Types.Promise ? recursiveResolve(res) : res));
 }
 
 interface IStackItem {
@@ -125,7 +134,8 @@ interface IStackItemObject extends IStackItem {
 
 type VisitedWeakMap = WeakMap<any, string>;
 type VisitedWeakSet = WeakSet<any>;
-class JsonStreamStringify extends Readable {
+
+export class JsonStreamStringify extends Readable {
   private visited: VisitedWeakMap | VisitedWeakSet;
   private stack: IStackItem[] = [];
   private replacerFunction?: Function;
@@ -154,7 +164,7 @@ class JsonStreamStringify extends Readable {
     this.addToStack(value);
   }
 
-  private cycler(key, value) {
+  private cycler(key: string | number | undefined, value: any) {
     const existingPath = (this.visited as VisitedWeakMap).get(value);
     if (existingPath) {
       return {
@@ -163,12 +173,12 @@ class JsonStreamStringify extends Readable {
     }
     let path = this.path();
     if (key !== undefined) path.push(key);
-    path = path.map(v => `[${(Number.isInteger(v as number) ? v : quoteString(v as string))}]`);
+    path = path.map((v) => `[${(Number.isInteger(v as number) ? v : quoteString(v as string))}]`);
     (this.visited as VisitedWeakMap).set(value, path.length ? `$${path.join('')}` : '$');
     return value;
   }
 
-  private addToStack(value, key?: string, index?: number, parent?: IStackItem) {
+  private addToStack(value: any, key?: string, index?: number, parent?: IStackItem) {
     let realValue = value;
     if (this.replacerFunction) {
       realValue = this.replacerFunction(key || index, realValue, this);
@@ -190,6 +200,7 @@ class JsonStreamStringify extends Readable {
       if (parent && !parent.first) {
         this._push(',');
       }
+      // eslint-disable-next-line no-param-reassign
       if (parent) parent.first = false;
     }
     if (realValue !== undefined && type !== Types.Promise && key) {
@@ -299,8 +310,10 @@ class JsonStreamStringify extends Readable {
           if (!current.first) {
             this._push(',');
           }
+          // eslint-disable-next-line no-param-reassign
           current.first = false;
           this.addToStack(value, undefined, current.readCount);
+          // eslint-disable-next-line no-param-reassign
           current.readCount += 1;
         }
       });
@@ -325,6 +338,7 @@ class JsonStreamStringify extends Readable {
     }
     const index = current.arrayLength - key;
     const value = current.value[index];
+    // eslint-disable-next-line no-param-reassign
     current.unread -= 1;
     this.addToStack(value, undefined, index, current);
   }
@@ -351,6 +365,7 @@ class JsonStreamStringify extends Readable {
             value = 'null';
             break;
           }
+        // eslint-disable-next-line no-fallthrough
         default:
           // This should never happen, I can't imagine a situation where this executes.
           // If you find a way, please open a ticket or PR
@@ -362,6 +377,7 @@ class JsonStreamStringify extends Readable {
     } else if (this.stack[1] && (this.stack[1].type === Types.Array || this.stack[1].type === Types.ReadableObject)) {
       this._push('null');
     } else {
+      // eslint-disable-next-line no-param-reassign
       current.addSeparatorAfterEnd = false;
     }
     this.removeFromStack(current);
@@ -441,8 +457,6 @@ class JsonStreamStringify extends Readable {
     return this.stack.map(({
       key,
       index,
-    }) => key || index).filter(v => v || v > -1).reverse();
+    }) => key || index).filter((v) => v || v > -1).reverse();
   }
 }
-
-export default JsonStreamStringify;
