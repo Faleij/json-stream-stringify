@@ -100,7 +100,7 @@ jobs:
     - uses: actions/download-artifact@v3
       with:
         name: build-artifact-${{ github.run_number }}
-    - run: npm publish
+    - run: npm publish --access public
       if: ${{ !env.ACT }}
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
