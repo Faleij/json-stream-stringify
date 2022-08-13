@@ -72,6 +72,10 @@ describe('JsonStreamStringify', () => {
 
   it('/regex/gi should be {}', createTest(/regex/gi, '{}'));
 
+  it('{undefined:null} should be {"undefined":null}', createTest({ undefined: null }, '{"undefined":null}'));
+
+  it('{"":null} should be {"":null}', createTest({ "": null }, '{"":null}'));
+
   it('{a:undefined} should be {}', createTest({ a: undefined }, '{}'));
 
   it('{a:null} should be {"a":null}', createTest({ a: null }, '{"a":null}'));

@@ -203,7 +203,7 @@ export class JsonStreamStringify extends Readable {
       // eslint-disable-next-line no-param-reassign
       if (parent) parent.first = false;
     }
-    if (realValue !== undefined && type !== Types.Promise && key) {
+    if (realValue !== undefined && type !== Types.Promise && key !== undefined) {
       if (this.gap) {
         this._push(`\n${this.gap.repeat(this.depth)}"${escapeString(key)}": `);
       } else {
