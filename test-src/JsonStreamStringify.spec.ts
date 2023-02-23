@@ -384,4 +384,38 @@ describe('JsonStreamStringify', () => {
     }
     throw new Error('expected error to be thrown');
   });
+
+  describe('max depth', () => {
+    const a = {
+      a1: {
+        a2: {
+          a3: {
+            a4: {
+              foo: 'bar',
+              num: 1,
+              arr: [{ foo: 'bar', num: 1 }, { foo: 'bar', num: 2 }],
+            },
+
+            foo: 'bar',
+            num: 1,
+            arr: [{ foo: 'bar', num: 1 }, { foo: 'bar', num: 2 }],
+          },
+
+          foo: 'bar',
+          num: 1,
+          arr: [{ foo: 'bar', num: 1 }, { foo: 'bar', num: 2 }],
+        },
+
+        foo: 'bar',
+        num: 1,
+        arr: [{ foo: 'bar', num: 1 }, { foo: 'bar', num: 2 }],
+      },
+    };
+
+    it('maxDepth should stringify correctly with maxDepth 0', createTest(a, JSON.stringify(a), undefined, undefined, false, 0));
+    it('maxDepth should stringify correctly with maxDepth 1', createTest(a, JSON.stringify(a), undefined, undefined, false, 1));
+    it('maxDepth should stringify correctly with maxDepth 2', createTest(a, JSON.stringify(a), undefined, undefined, false, 2));
+    it('maxDepth should stringify correctly with maxDepth 3', createTest(a, JSON.stringify(a), undefined, undefined, false, 3));
+    it('maxDepth should stringify correctly with maxDepth 4', createTest(a, JSON.stringify(a), undefined, undefined, false, 4));
+  });
 });
