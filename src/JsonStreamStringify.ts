@@ -148,7 +148,7 @@ export class JsonStreamStringify extends Readable {
   private isReading: boolean = false;
   private readMore: boolean = false;
 
-  constructor(value, replacer?: Function | any[], spaces?: number | string, private cycle: boolean = false) {
+  constructor(value, replacer?: Function | any[], spaces?: number | string, private cycle: boolean = false, private maxDepth: number | undefined = undefined) {
     super({ encoding: 'utf8' });
     const spaceType = typeof spaces;
     if (spaceType === 'string' || spaceType === 'number') {
@@ -229,7 +229,10 @@ export class JsonStreamStringify extends Readable {
 
     if (!key && index > -1 && this.depth && this.gap) this._push(`\n${this.gap.repeat(this.depth)}`);
 
-    const open = stackItemOpen[type];
+    let open = stackItemOpen[type];
+    if (this.maxDepth != null && this.depth >= this.maxDepth) {
+      open = '';
+    }
     if (open) this._push(open);
 
     const obj: IStackItem = {
@@ -286,8 +289,11 @@ export class JsonStreamStringify extends Readable {
       }
     }
 
-    const end = stackItemEnd[type];
+    let end = stackItemEnd[type];
     if (isObject && !item.isEmpty && this.gap) this._push(`\n${this.gap.repeat(this.depth)}`);
+    if (this.maxDepth != null && this.depth >= this.maxDepth) {
+      end = '';
+    }
     if (end) this._push(end);
     const stackIndex = this.stack.indexOf(item);
     this.stack.splice(stackIndex, 1);
@@ -320,6 +326,11 @@ export class JsonStreamStringify extends Readable {
   }
 
   private processObject(current: IStackItemObject) {
+    if (this.maxDepth != null && this.depth > this.maxDepth) {
+      this._push(JSON.stringify(current.value));
+      this.removeFromStack(current);
+      return;
+    }
     // when no keys left, remove obj from stack
     if (!current.unread.length) {
       this.removeFromStack(current);
@@ -331,6 +342,11 @@ export class JsonStreamStringify extends Readable {
   }
 
   private processArray(current: IStackItemArray) {
+    if (this.maxDepth != null && this.depth > this.maxDepth) {
+      this._push(JSON.stringify(current.value));
+      this.removeFromStack(current);
+      return;
+    }
     const key = <number>current.unread;
     if (!key) {
       this.removeFromStack(current);

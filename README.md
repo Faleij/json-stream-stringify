@@ -113,6 +113,10 @@ Streaming conversion of ``value`` to JSON string.
   ``true`` enables cycling of cyclical structures and dags.  
   To restore cyclical structures; use [Crockfords Retrocycle method](https://github.com/douglascrockford/JSON-js) on the parsed object (not included in this module).
 
+- ``maxDepth`` Optional ``Number``
+  When ``maxDepth`` is set, objects nested deeper than the maxDepth will be parsed all at once.  Setting this can be helpful for increasing performance on very large objects.
+
+
 #### Returns
 
 - ``JsonStreamStringify`` object that exposes a [Streams3 interface](https://nodejs.org/api/stream.html#stream_class_stream_readable).
