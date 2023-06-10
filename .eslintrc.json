@@ -3,7 +3,9 @@
   "plugins": ["@typescript-eslint"],
   "parser": "@typescript-eslint/parser",
   "settings": {
-    "react": { "version": "none" }
+    "react": {
+      "version": "0"
+    }
   },
   "rules": {
     "max-line-length": 0,

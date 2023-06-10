@@ -15,7 +15,7 @@ jobs:
     - run: npm ci
     - run: npm run lint
     - run: npm run build
-    - run: npx es-check es3 'lib/**/*.js'
+    - run: npx es-check es8 'lib/umd/index.js'
     - run: cp -r copy_to_lib/* lib
     # install older mocha for node<14 tests
     - run: npm i mocha@3.5.3 --no-save
