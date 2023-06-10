@@ -7,10 +7,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     # if: startsWith(github.ref, 'refs/tags/') || github.head_ref || ${{ env.ACT }}
-    using: 'node18'
     steps:
     - uses: actions/checkout@v3
-    - uses: volta-cli/action@v1
+    - uses: volta-cli/action@v4
       with:
         node-version: 18
     - run: npm ci
@@ -43,7 +42,6 @@ jobs:
   coverage:
     needs: build
     runs-on: ubuntu-latest
-    using: 'node18'
     steps:
     - uses: actions/download-artifact@v3
       with:
@@ -54,7 +52,7 @@ jobs:
     - uses: montudor/action-zip@v1
       with:
         args: unzip -qq node_modules.zip -d .
-    - uses: volta-cli/action@v1
+    - uses: volta-cli/action@v4
       with:
         node-version: 18
     - run: npm run coverage
@@ -73,9 +71,8 @@ jobs:
     needs: build
     strategy:
       matrix:
-        node: [7, 10, 16] # 18 is tested by coverage in build stage
+        node: ['7.10.1', 10, 16] # 18 is tested by coverage in build stage
     runs-on: ubuntu-latest
-    using: 'node18'
     steps:
     - uses: actions/download-artifact@v3
       with:
@@ -86,7 +83,7 @@ jobs:
     - uses: montudor/action-zip@v1
       with:
         args: unzip -qq node_modules.zip -d .
-    - uses: volta-cli/action@v1
+    - uses: volta-cli/action@v4
       with:
         node-version: ${{ matrix.node }}
     - run: volta run --node ${{ matrix.node }} npm test
@@ -94,7 +91,6 @@ jobs:
   deploy:
     needs: [test, coverage]
     runs-on: ubuntu-latest
-    using: 'node18'
     environment: deploy
     if: startsWith(github.ref, 'refs/tags/')
     steps:
