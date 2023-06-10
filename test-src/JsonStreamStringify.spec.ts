@@ -231,7 +231,7 @@ describe('JsonStreamStringify', () => {
       );
   });
 
-  it('{a:Promise(1)} should be {"a":1}', createTest({ a: Promise.resolve(1) },'{"a":1}'));
+  it('{a:Promise(1)} should be {"a":1}', createTest({ a: Promise.resolve(1) }, '{"a":1}'));
 
   it('readableStream(1) should be [1]', createTest(readableStream(1), '[1]'));
 

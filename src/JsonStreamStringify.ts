@@ -505,6 +505,7 @@ export class JsonStreamStringify extends Readable {
   }
 
   _destroy() {
+    this.destroyed = true;
     this.buffer = undefined;
     this.visited = undefined;
     this.item = undefined;
@@ -513,7 +514,7 @@ export class JsonStreamStringify extends Readable {
 
   destroy(error?: Error): this {
     if (error) this.emit('error', error);
-    super.destroy();
+    super.destroy?.();
     this._destroy();
     return this;
   }

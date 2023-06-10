@@ -18,7 +18,7 @@ jobs:
     - run: npx es-check es8 'lib/umd/index.js'
     - run: cp -r copy_to_lib/* lib
     # install older mocha for node<14 tests
-    - run: npm i mocha@3.5.3 --no-save
+    - run: npm i mocha@6 --no-save
     - uses: montudor/action-zip@v1
       with:
         args: zip -0 -qq -r node_modules.zip node_modules
