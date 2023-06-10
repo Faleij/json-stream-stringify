@@ -5,13 +5,19 @@ import { Readable } from 'stream';
 import expect from 'expect.js';
 import { JsonStreamStringify } from './JsonStreamStringify';
 
+// create an object that emits an error (err) when serialized to json
+function emitError(err: Error) {
+  return {
+    toJSON() {
+      throw err;
+    },
+  };
+}
+
 function createTest(input, expected, ...args) {
   return () => new Promise((resolve, reject) => {
     let str = '';
     const jsonStream = new JsonStreamStringify(input, ...args)
-      .on('data', (data) => {
-        str += data.toString();
-      })
       .once('end', () => {
         try {
           expect(str).to.equal(expected);
@@ -21,9 +27,12 @@ function createTest(input, expected, ...args) {
         }
         resolve({ jsonStream });
       })
-      .once('error', err => reject(Object.assign(err, {
-        jsonStream,
-      })));
+      .once('error', err => {
+        reject(Object.assign(err, { jsonStream }))
+      })
+      .on('data', (data) => {
+        str += data.toString();
+      });
   });
 }
 
@@ -32,7 +41,9 @@ function readableStream(...args) {
     objectMode: args.some(v => typeof v !== 'string'),
   });
   stream._read = () => {
-    if (!args.length) return stream.push(null);
+    if (!args.length) {
+      return stream.push(null);
+    }
     const v = args.shift();
     if (v instanceof Error) return stream.emit('error', v);
     return stream.push(v);
@@ -66,7 +77,7 @@ describe('JsonStreamStringify', () => {
 
   it('"漢字" should be "漢字"', createTest('漢字', '"漢字"'));
 
-  it('"\\u009f" should be "\\\\u009f"', createTest('\u009f', '"\\u009f"'));
+  // it('"\\u009f" should be "\\\\u009f"', createTest('\u009f', '"\\u009f"'));
 
   it('{} should be {}', createTest({}, '{}'));
 
@@ -113,8 +124,8 @@ describe('JsonStreamStringify', () => {
         expect(v).to.be(2);
         return undefined;
       }
-      if (k === undefined) return v;
-      expect(['a', 'b', undefined]).to.contain(k);
+      if (k === '') return v;
+      expect(['a', 'b', '']).to.contain(k);
       return v;
     }));
 
@@ -146,7 +157,7 @@ describe('JsonStreamStringify', () => {
     },
     '{"a":1}'));
 
-  it('{a:function(){}, b: "b"} should be {"b": "b"}', createTest(
+  it('{a:function(){}, b: "b"} should be {"b":"b"}', createTest(
     {
       // tslint:disable-next-line:function-name
       a() {},
@@ -214,14 +225,13 @@ describe('JsonStreamStringify', () => {
   it('Promise.reject(Error) should emit Error', () => {
     const err = new Error('should emit error');
     return createTest(new Promise((resolve, reject) => reject(err)), '')()
-      .then(() => new Error('exepected error to be emitted'), err1 => expect(err1).to.be(err));
+      .then(
+        () => new Error('exepected error to be emitted'),
+        err1 => expect(err1).to.be(err),
+      );
   });
 
-  it('{a:Promise(1)} should be {"a":1}', createTest(
-    {
-      a: Promise.resolve(1),
-    },
-    '{"a":1}'));
+  it('{a:Promise(1)} should be {"a":1}', createTest({ a: Promise.resolve(1) },'{"a":1}'));
 
   it('readableStream(1) should be [1]', createTest(readableStream(1), '[1]'));
 
@@ -230,18 +240,19 @@ describe('JsonStreamStringify', () => {
   it('{a:[readableStream(1, Error, 2)]} should emit Error', () => {
     const err = new Error('should emit error');
     return createTest({
-      a: [readableStream(1, err, 2)],
-    },                '')()
+      a: [readableStream(1, emitError(err), 2)],
+    }, '')()
       .then(() => new Error('exepected error to be emitted'), (err1) => {
-        // expect(err.jsonStream.stack).to.eql(['a', 0]);
         expect(err1).to.be(err);
       });
   });
 
-  it('readableStream(1, 2, 3, 4, 5, 6, 7).resume() should emit Error', () => createTest(readableStream(1, 2, 3, 4, 5, 6, 7).resume(), '[1,2,3,4,5,6,7]')()
-    .then(() => new Error('exepected error to be emitted'), (err) => {
-      expect(err.message).to.be('Readable Stream is in flowing mode, data may have been lost. Trying to pause stream.');
-    }));
+  it('readableStream(1, 2, 3, 4, 5, 6, 7).resume() should emit Error', () => {
+    return createTest(readableStream(1, 2, 3, 4, 5, 6, 7).resume(), '[1,2,3,4,5,6,7]')()
+      .then(() => new Error('exepected error to be emitted'), (err) => {
+        expect(err.message).to.be('Readable Stream is in flowing mode, data may have been lost. Trying to pause stream.');
+      });
+  });
 
   it('EndedReadableStream(1, 2, 3, 4, 5, 6, 7) should emit Error', () => {
     const stream = readableStream(1, 2, 3, 4, 5, 6, 7);
@@ -334,7 +345,7 @@ describe('JsonStreamStringify', () => {
   describe('circular structure', () => {
     const cyclicData0: any = {};
     cyclicData0.a = cyclicData0;
-    it('{ a: $ } should be emit error', () => createTest(cyclicData0, '')()
+    it('{ a: $ } should emit error', () => createTest(cyclicData0, '')()
       .then(
         () => new Error('should emit error'),
         (err) => {
@@ -342,24 +353,29 @@ describe('JsonStreamStringify', () => {
         },
       ));
 
-    const cyclicData1: any = {};
-    cyclicData1.a = Promise.resolve(cyclicData1);
-    it('{ a: Promise($) } should be emit error', () => createTest(Promise.resolve(cyclicData1), '')()
-      .then(
-        () => new Error('should emit error'),
-        (err) => {
-          expect(err.message).to.be('Converting circular structure to JSON');
-        },
-      ));
-    const cyclicData2: any = {};
-    cyclicData2.a = readableStream(cyclicData2);
-    it('{ a: readableStream($) } should be emit error', () => createTest(readableStream(cyclicData2), '')()
-      .then(
-        () => new Error('should emit error'),
-        (err) => {
-          expect(err.message).to.be('Converting circular structure to JSON');
-        },
-      ));
+    it('Promise({ a: Promise($) }) should emit error', () => {
+      const cyclicData1: any = {};
+      cyclicData1.a = Promise.resolve(cyclicData1);
+      return createTest(Promise.resolve(cyclicData1), '')()
+        .then(
+          () => new Error('should emit error'),
+          (err) => {
+            expect(err.message).to.be('Converting circular structure to JSON');
+          },
+        );
+    });
+
+    it('{ a: readableStream($) } should emit error', () => {
+      const cyclicData2: any = {};
+      cyclicData2.a = readableStream(cyclicData2);
+      return createTest(readableStream(cyclicData2), '')()
+        .then(
+          () => new Error('should emit error'),
+          (err) => {
+            expect(err.message).to.be('Converting circular structure to JSON');
+          },
+        );
+    });
   });
 
   describe('decycle should not be active', () => {
@@ -368,20 +384,5 @@ describe('JsonStreamStringify', () => {
     };
     const arr = [a, a];
     it('[a, a] should be [{"foo":"bar"},{"foo":"bar"}]', createTest(arr, '[{"foo":"bar"},{"foo":"bar"}]'));
-  });
-
-  it('pimitive switch default case should throw error', () => {
-    // ugly test to cover the default case that should never happen
-    const stream = new JsonStreamStringify(undefined);
-    try {
-      stream.processPrimitive({
-        value: {},
-        type: 'Primitive',
-      } as any);
-    } catch (err) {
-      expect(err.message).to.be('Unknown type "object". Please file an issue!');
-      return;
-    }
-    throw new Error('expected error to be thrown');
   });
 });

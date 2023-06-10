@@ -9,23 +9,11 @@
 
 JSON Stringify as a Readable Stream with rescursive resolving of any readable streams and Promises.
 
-## Breaking Changes in v3
+## Important and Breaking Changes in v3.1.0
 
-- [Import formatting has changed](#usage)
-- [CJS output added](#usage)
-
-## Important and Breaking Changes in v2
-
-- Completely rewritten from scratch
-- 100% Code Coverage! 🎉
-- Space argument finally implemented! 🎉
-- ⚠️ Cycling is off by default
-- ⚠️ JsonStreamStringify is now a constructor; use ``new`` operator
-- Removed dependency on global JSON.stringify, Async/Await and Generators
-- JsonStreamStringify is now compiled with babel to target ES5 (polyfills needed)
-- Rejected promises and input stream errors are now handled and emitted as errors
-- Added cyclic structure detection to prevent infinite recursion
-- 🆕 Converted to Typescript
+- Completely rewritten from scratch - again
+- Buffer argument added (Stream will not output data untill buffer size is reached - improves speed)
+- Dropped support for node <7.10.1 - async supporting environment now required
 
 ## Main Features
 
@@ -93,7 +81,7 @@ const { JsonStreamStringify } = require('json-stream-stringify/cjs/polyfill');
 
 ## API
 
-### `new JsonStreamStringify(value[, replacer[, spaces[, cycle]]])`  
+### `new JsonStreamStringify(value[, replacer[, spaces[, cycle[, bufferSize=512]]]])`  
 
 Streaming conversion of ``value`` to JSON string.
 

@@ -1,3 +1,4 @@
+/* eslint-disable max-classes-per-file */
 import { Readable } from 'stream';
 
 // eslint-disable-next-line no-control-regex, no-misleading-character-class
@@ -53,20 +54,6 @@ stackItemEnd[Types.Object] = '}';
 stackItemEnd[Types.ReadableString] = '"';
 stackItemEnd[Types.ReadableObject] = ']';
 
-const processFunctionLookupTable = [
-  'processArray',
-  'processObject',
-  'processReadableString',
-  'processReadableObject',
-  'processPrimitive',
-  'processPromise',
-];
-/*
-for (const [key, val] of Object.entries(Types)) {
-  if (typeof val === 'number') processFunctionLookupTable[val] = `process${key}`;
-}
-*/
-
 function escapeString(string) {
   // Modified code, original code by Douglas Crockford
   // Original: https://github.com/douglascrockford/JSON-js/blob/master/json2.js
@@ -82,8 +69,61 @@ function escapeString(string) {
   });
 }
 
+let primitiveToJSON: (value: any) => string;
+
+if (global?.JSON?.stringify instanceof Function) {
+  let canSerializeBigInt = true;
+  try {
+    if (JSON.stringify(global.BigInt ? global.BigInt('123') : '') !== '123') throw new Error();
+  } catch (err) {
+    canSerializeBigInt = false;
+  }
+  if (canSerializeBigInt) {
+    primitiveToJSON = JSON.parse;
+  } else {
+    // eslint-disable-next-line no-confusing-arrow
+    primitiveToJSON = (value) => typeof value === 'bigint' ? String(value) : JSON.stringify(value);
+  }
+} else {
+  primitiveToJSON = (value) => {
+    switch (typeof value) {
+      case 'string':
+        return `"${escapeString(value)}"`;
+      case 'number':
+        return Number.isFinite(value) ? String(value) : 'null';
+      case 'bigint':
+        return String(value);
+      case 'boolean':
+        return value ? 'true' : 'false';
+      case 'object':
+        if (!value) {
+          return 'null';
+        }
+      // eslint-disable-next-line no-fallthrough
+      default:
+        // This should never happen, I can't imagine a situation where this executes.
+        // If you find a way, please open a ticket or PR
+        throw Object.assign(new Error(`Not a primitive "${typeof value}".`), { value });
+    }
+  };
+}
+
+/*
 function quoteString(string: string) {
-  return `"${escapeString(string)}"`;
+  return primitiveToJSON(String(string));
+}
+*/
+
+const cache = new Map();
+function quoteString(string: string) {
+  const useCache = string.length < 10_000;
+  // eslint-disable-next-line no-lonely-if
+  if (useCache && cache.has(string)) {
+    return cache.get(string);
+  }
+  const str = primitiveToJSON(String(string));
+  if (useCache) cache.set(string, str);
+  return str;
 }
 
 function readAsPromised(stream, size) {
@@ -103,360 +143,378 @@ function readAsPromised(stream, size) {
   return Promise.resolve(value);
 }
 
-function recursiveResolve(promise: Promise<any>): Promise<any> {
-  return promise.then((res) => (getType(res) === Types.Promise ? recursiveResolve(res) : res));
+interface Item {
+  read(size?: number): Promise<void> | void;
+  depth?: number;
+  value?: any;
+  indent?: string;
+  path?: (string | number)[];
 }
 
-interface IStackItem {
-  key?: string;
-  index?: number;
-  type: Types;
-  value: any;
-  parent?: IStackItem;
-  first: boolean;
-  unread?: string[] | number;
-  isEmpty?: boolean;
-  arrayLength?: number;
-  readCount?: number;
-  end?: boolean;
-  addSeparatorAfterEnd?: boolean;
+enum ReadState {
+  NotReading = 0,
+  Reading,
+  ReadMore,
+  Consumed,
 }
-
-interface IStackItemArray extends IStackItem {
-  unread: number;
-  isEmpty: boolean;
-  arrayLength: number;
-}
-
-interface IStackItemObject extends IStackItem {
-  unread: string[];
-}
-
-type VisitedWeakMap = WeakMap<any, string>;
-type VisitedWeakSet = WeakSet<any>;
 
 export class JsonStreamStringify extends Readable {
-  private visited: VisitedWeakMap | VisitedWeakSet;
-  private stack: IStackItem[] = [];
-  private replacerFunction?: Function;
-  private replacerArray?: any[];
-  private gap?: string;
-  private depth: number = 0;
-  private error: boolean;
-  private pushCalled: boolean = false;
-  private end: boolean = false;
-  private isReading: boolean = false;
-  private readMore: boolean = false;
+  item?: Item;
+  indent?: string;
+  root: Item;
+  include: string[];
+  replacer: Function;
+  visited: [] | WeakMap<any, string[]>;
 
-  constructor(value, replacer?: Function | any[], spaces?: number | string, private cycle: boolean = false) {
+  constructor(
+    input: any,
+    replacer?: Function | any[] | undefined,
+    spaces?: number | string | undefined,
+    private cycle = false,
+    private bufferSize = 512,
+  ) {
     super({ encoding: 'utf8' });
+
     const spaceType = typeof spaces;
-    if (spaceType === 'string' || spaceType === 'number') {
-      this.gap = Number.isFinite(spaces as number) ? ' '.repeat(spaces as number) : spaces as string;
-    }
-    Object.assign(this, {
-      visited: cycle ? new WeakMap() : new WeakSet(),
-      replacerFunction: replacer instanceof Function && replacer,
-      replacerArray: Array.isArray(replacer) && replacer,
-    });
-    if (replacer instanceof Function) this.replacerFunction = replacer;
-    if (Array.isArray(replacer)) this.replacerArray = replacer;
-    this.addToStack(value);
-  }
-
-  private cycler(key: string | number | undefined, value: any) {
-    const existingPath = (this.visited as VisitedWeakMap).get(value);
-    if (existingPath) {
-      return {
-        $ref: existingPath,
-      };
-    }
-    let path = this.path();
-    if (key !== undefined) path.push(key);
-    path = path.map((v) => `[${(Number.isInteger(v as number) ? v : quoteString(v as string))}]`);
-    (this.visited as VisitedWeakMap).set(value, path.length ? `$${path.join('')}` : '$');
-    return value;
-  }
-
-  private addToStack(value: any, key?: string, index?: number, parent?: IStackItem) {
-    let realValue = value;
-    if (this.replacerFunction) {
-      realValue = this.replacerFunction(key || index, realValue, this);
-    }
-    // ORDER?
-    if (realValue && realValue.toJSON instanceof Function) {
-      realValue = realValue.toJSON();
-    }
-    if (realValue instanceof Function || typeof value === 'symbol') {
-      realValue = undefined;
-    }
-    if (key !== undefined && this.replacerArray) {
-      if (!this.replacerArray.includes(key)) {
-        realValue = undefined;
-      }
-    }
-    let type = getType(realValue);
-    if (((parent && parent.type === Types.Array) ? true : realValue !== undefined) && type !== Types.Promise) {
-      if (parent && !parent.first) {
-        this._push(',');
-      }
-      // eslint-disable-next-line no-param-reassign
-      if (parent) parent.first = false;
-    }
-    if (realValue !== undefined && type !== Types.Promise && key !== undefined) {
-      if (this.gap) {
-        this._push(`\n${this.gap.repeat(this.depth)}"${escapeString(key)}": `);
-      } else {
-        this._push(`"${escapeString(key)}":`);
-      }
-    }
-    if (type !== Types.Primitive) {
-      if (this.cycle) {
-        // run cycler
-        realValue = this.cycler(key || index, realValue);
-        type = getType(realValue);
-      } else {
-        // check for circular structure
-        if (this.visited.has(realValue)) {
-          throw Object.assign(new Error('Converting circular structure to JSON'), {
-            realValue,
-            key: key || index,
-          });
-        }
-        (this.visited as VisitedWeakSet).add(realValue);
-      }
+    if (spaceType === 'number') {
+      this.indent = ' '.repeat(<number>spaces);
+    } else if (spaceType === 'string') {
+      this.indent = <string>spaces;
     }
 
-    if (!key && index > -1 && this.depth && this.gap) this._push(`\n${this.gap.repeat(this.depth)}`);
+    const replacerType = typeof replacer;
+    if (replacerType === 'object') {
+      this.include = replacer as string[];
+    } else if (replacerType === 'function') {
+      this.replacer = replacer as Function;
+    }
 
-    const open = stackItemOpen[type];
-    if (open) this._push(open);
+    this.visited = cycle ? new WeakMap() : [];
 
-    const obj: IStackItem = {
-      key,
-      index,
-      type,
-      parent,
-      value: realValue,
-      first: true,
+    this.root = <any>{
+      value: { '': input },
+      depth: 0,
+      indent: '',
+      path: [],
     };
+    this.setItem(input, this.root, '');
+  }
+
+  setItem(value, parent: Item, key: string | number = '') {
+    // call toJSON where applicable
+    if (
+      value
+      && typeof value === 'object'
+      && typeof value.toJSON === 'function'
+    ) {
+      value = value.toJSON(key);
+    }
+
+    // use replacer if applicable
+    if (this.replacer) {
+      value = this.replacer.call(parent.value, key, value);
+    }
+
+    // coerece functions and symbols into undefined
+    if (value instanceof Function || typeof value === 'symbol') {
+      value = undefined;
+    }
+
+    const type = getType(value);
+    let path;
+
+    // check for circular structure
+    if (!this.cycle && type !== Types.Primitive) {
+      if ((this.visited as any[]).some((v) => v === value)) {
+        this.destroy(Object.assign(new Error('Converting circular structure to JSON'), {
+          value,
+          key,
+        }));
+        return;
+      }
+      (this.visited as any[]).push(value);
+    } else if (this.cycle && type !== Types.Primitive) {
+      path = (this.visited as WeakMap<any, string[]>).get(value);
+      if (path) {
+        this._push(`{"$ref":"$${path.map((v) => `[${(Number.isInteger(v as number) ? v : escapeString(quoteString(v as string)))}]`).join('')}"}`);
+        this.item = parent;
+        return;
+      }
+      path = parent === this.root ? [] : parent.path.concat(key);
+      (this.visited as WeakMap<any, string[]>).set(value, path);
+    }
 
     if (type === Types.Object) {
-      this.depth += 1;
-      obj.unread = Object.keys(realValue);
-      obj.isEmpty = !obj.unread.length;
+      this.setObjectItem(value, parent);
     } else if (type === Types.Array) {
-      this.depth += 1;
-      obj.unread = realValue.length;
-      obj.arrayLength = <number>obj.unread;
-      obj.isEmpty = !obj.unread;
-    } else if (type === Types.ReadableString || type === Types.ReadableObject) {
-      this.depth += 1;
-      if (realValue.readableEnded || realValue._readableState?.endEmitted) {
-        this.emit('error', new Error('Readable Stream has ended before it was serialized. All stream data have been lost'), realValue, key || index);
-      } else if (realValue.readableFlowing || realValue._readableState?.flowing) {
-        realValue.pause();
-        this.emit('error', new Error('Readable Stream is in flowing mode, data may have been lost. Trying to pause stream.'), realValue, key || index);
-      }
-      obj.readCount = 0;
-      realValue.once('end', () => {
-        obj.end = true;
-        this.__read();
-      });
-      realValue.once('error', (err) => {
-        this.error = true;
-        this.emit('error', err);
-      });
-    }
-    this.stack.unshift(obj);
-    return obj;
-  }
-
-  private removeFromStack(item: IStackItem) {
-    const {
-      type,
-    } = item;
-    const isObject = type === Types.Object || type === Types.Array || type === Types.ReadableString || type === Types.ReadableObject;
-    if (type !== Types.Primitive) {
-      if (!this.cycle) {
-        this.visited.delete(item.value);
-      }
-      if (isObject) {
-        this.depth -= 1;
-      }
-    }
-
-    const end = stackItemEnd[type];
-    if (isObject && !item.isEmpty && this.gap) this._push(`\n${this.gap.repeat(this.depth)}`);
-    if (end) this._push(end);
-    const stackIndex = this.stack.indexOf(item);
-    this.stack.splice(stackIndex, 1);
-  }
-
-  // tslint:disable-next-line:function-name
-  private _push(data) {
-    this.pushCalled = true;
-    this.push(data);
-  }
-
-  private processReadableObject(current: IStackItem, size: number) {
-    if (current.end) {
-      this.removeFromStack(current);
-      return undefined;
-    }
-    return readAsPromised(current.value, size)
-      .then((value) => {
-        if (value !== null) {
-          if (!current.first) {
-            this._push(',');
-          }
-          // eslint-disable-next-line no-param-reassign
-          current.first = false;
-          this.addToStack(value, undefined, current.readCount);
-          // eslint-disable-next-line no-param-reassign
-          current.readCount += 1;
-        }
-      });
-  }
-
-  private processObject(current: IStackItemObject) {
-    // when no keys left, remove obj from stack
-    if (!current.unread.length) {
-      this.removeFromStack(current);
-      return;
-    }
-    const key = current.unread.shift();
-    const value = current.value[key];
-    this.addToStack(value, key, undefined, current);
-  }
-
-  private processArray(current: IStackItemArray) {
-    const key = <number>current.unread;
-    if (!key) {
-      this.removeFromStack(current);
-      return;
-    }
-    const index = current.arrayLength - key;
-    const value = current.value[index];
-    // eslint-disable-next-line no-param-reassign
-    current.unread -= 1;
-    this.addToStack(value, undefined, index, current);
-  }
-
-  processPrimitive(current: IStackItem) {
-    if (current.value !== undefined) {
-      const type = typeof current.value;
-      let value;
-      switch (type) {
-        case 'string':
-          value = quoteString(current.value);
-          break;
-        case 'number':
-          value = Number.isFinite(current.value) ? String(current.value) : 'null';
-          break;
-        case 'bigint':
-          value = String(current.value);
-          break;
-        case 'boolean':
-          value = String(current.value);
-          break;
-        case 'object':
-          if (!current.value) {
-            value = 'null';
-            break;
-          }
-        // eslint-disable-next-line no-fallthrough
-        default:
-          // This should never happen, I can't imagine a situation where this executes.
-          // If you find a way, please open a ticket or PR
-          throw Object.assign(new Error(`Unknown type "${type}". Please file an issue!`), {
-            value: current.value,
-          });
-      }
-      this._push(value);
-    } else if (this.stack[1] && (this.stack[1].type === Types.Array || this.stack[1].type === Types.ReadableObject)) {
-      this._push('null');
-    } else {
-      // eslint-disable-next-line no-param-reassign
-      current.addSeparatorAfterEnd = false;
-    }
-    this.removeFromStack(current);
-  }
-
-  private processReadableString(current: IStackItem, size: number) {
-    if (current.end) {
-      this.removeFromStack(current);
-      return undefined;
-    }
-    return readAsPromised(current.value, size)
-      .then((value) => {
-        if (value) this._push(escapeString(value.toString()));
-      });
-  }
-
-  private processPromise(current: IStackItem) {
-    return recursiveResolve(current.value).then((value) => {
-      this.removeFromStack(current);
-      this.addToStack(value, current.key, current.index, current.parent);
-    });
-  }
-
-  private processStackTopItem(size: number) {
-    const current = this.stack[0];
-    if (!current || this.error) return Promise.resolve();
-    let out;
-    try {
-      out = this[processFunctionLookupTable[current.type]](current, size);
-    } catch (err) {
-      return Promise.reject(err);
-    }
-    return Promise.resolve(out)
-      .then(() => {
-        if (this.stack.length === 0) {
-          this.end = true;
-          this._push(null);
-        }
-      });
-  }
-
-  // tslint:disable-next-line:function-name
-  private __read(size?: number) {
-    if (this.isReading || this.error) {
-      this.readMore = true;
-      return undefined;
-    }
-    this.isReading = true;
-
-    // we must continue to read while push has not been called
-    this.readMore = false;
-    return this.processStackTopItem(size)
-      .then(() => {
-        const readAgain = !this.end && !this.error && (this.readMore || !this.pushCalled);
-        if (readAgain) {
-          setImmediate(() => {
-            this.isReading = false;
-            this.__read();
-          });
+      this.setArrayItem(value, parent);
+    } else if (type === Types.Primitive) {
+      if (parent !== this.root && typeof key === 'string') {
+        // (<any>parent).write(key, primitiveToJSON(value));
+        if (value === undefined) {
+          // clear prePush buffer
+          // this.prePush = '';
         } else {
-          this.isReading = false;
+          this._push(primitiveToJSON(value));
         }
-      })
-      .catch((err) => {
-        this.error = true;
-        this.emit('error', err);
-      });
+        // undefined values in objects should be rejected
+      } else if (value === undefined && typeof key === 'number') {
+        // undefined values in array should be null
+        this._push('null');
+      } else if (value === undefined) {
+        // undefined values should be ignored
+      } else {
+        this._push(primitiveToJSON(value));
+      }
+      this.item = parent;
+      return;
+    } else if (type === Types.Promise) {
+      this.setPromiseItem(value, parent, key);
+    } else if (type === Types.ReadableString) {
+      this.setReadableStringItem(value, parent);
+    } else if (type === Types.ReadableObject) {
+      this.setReadableObjectItem(value, parent);
+    }
+
+    this.item.value = value;
+    this.item.depth = parent.depth + 1;
+    if (this.indent) this.item.indent = this.indent.repeat(this.item.depth);
+    this.item.path = path;
   }
 
-  // tslint:disable-next-line:function-name
-  _read(size: number) {
+  setReadableStringItem(input: Readable, parent: Item) {
+    if (input.readableEnded || (input as any)._readableState?.endEmitted) {
+      this.emit('error', new Error('Readable Stream has ended before it was serialized. All stream data have been lost'), input, parent.path);
+    } else if (input.readableFlowing || (input as any)._readableState?.flowing) {
+      input.pause();
+      this.emit('error', new Error('Readable Stream is in flowing mode, data may have been lost. Trying to pause stream.'), input, parent.path);
+    }
+    const that = this;
+    this._push('"');
+    input.once('end', () => {
+      this._push('"');
+      this.item = parent;
+      this.emit('readable');
+    });
+    this.item = <any>{
+      type: 'readable string',
+      async read(size: number) {
+        try {
+          const data = await readAsPromised(input, size);
+          if (data) that._push(escapeString(data.toString()));
+        } catch (err) {
+          that.emit('error', err);
+          that.destroy();
+        }
+      },
+    };
+  }
+
+  setReadableObjectItem(input: Readable, parent: Item) {
+    if (input.readableEnded || (input as any)._readableState?.endEmitted) {
+      this.emit('error', new Error('Readable Stream has ended before it was serialized. All stream data have been lost'), input, parent.path);
+    } else if (input.readableFlowing || (input as any)._readableState?.flowing) {
+      input.pause();
+      this.emit('error', new Error('Readable Stream is in flowing mode, data may have been lost. Trying to pause stream.'), input, parent.path);
+    }
+    const that = this;
+    this._push('[');
+    let first = true;
+    let i = 0;
+    const item = <any>{
+      type: 'readable object',
+      async read(size: number) {
+        try {
+          let out = '';
+          const data = await readAsPromised(input, size);
+          if (data === null) {
+            if (i && that.indent) {
+              out += `\n${parent.indent}`;
+            }
+            out += ']';
+            that._push(out);
+            that.item = parent;
+            that.unvisit(input);
+            return;
+          }
+          if (first) first = false;
+          else out += ',';
+          if (that.indent) out += `\n${item.indent}`;
+          that._push(out);
+          that.setItem(data, item, i);
+          i += 1;
+        } catch (err) {
+          that.emit('error', err);
+          that.destroy();
+        }
+      },
+    };
+    this.item = item;
+  }
+
+  setPromiseItem(input: Promise<any>, parent: Item, key) {
+    const that = this;
+    let read = false;
+    this.item = {
+      async read() {
+        if (read) return;
+        read = true;
+        input.then((v) => that.setItem(v, parent, key), (err) => {
+          that.emit('error', err);
+          that.destroy();
+        });
+      },
+    };
+  }
+
+  setArrayItem(input: any[], parent: any) {
+    // const entries = input.slice().reverse();
+    let i = 0;
+    const len = input.length;
+    let first = true;
+    const that = this;
+    const item: Item = {
+      read() {
+        let out = '';
+        let wasFirst = false;
+        if (first) {
+          first = false;
+          wasFirst = true;
+          if (!len) {
+            that._push('[]');
+            that.item = parent;
+            return;
+          }
+          out += '[';
+        }
+        const entry = input[i];
+        if (i === len) {
+          if (that.indent) out += `\n${parent.indent}`;
+          out += ']';
+          that._push(out);
+          that.item = parent;
+          that.unvisit(input);
+          return;
+        }
+        if (!wasFirst) out += ',';
+        if (that.indent) out += `\n${item.indent}`;
+        that._push(out);
+        that.setItem(entry, item, i);
+        i += 1;
+      },
+    };
+    this.item = item;
+  }
+
+  unvisit(item) {
+    if (this.cycle) return;
+    const _i = (this.visited as any[]).indexOf(item);
+    if (_i > -1) (this.visited as any[]).splice(_i, 1);
+  }
+
+  objectItem?: any;
+  setObjectItem(input: Record<any, any>, parent = undefined) {
+    const keys = Object.keys(input);
+    let i = 0;
+    const len = keys.length;
+    let first = true;
+    const that = this;
+    const { include } = this;
+    let hasItems = false;
+    let key;
+    const item: Item = <any>{
+      read() {
+        if (i === 0) that._push('{');
+        if (i === len) {
+          that.objectItem = undefined;
+          if (!hasItems) {
+            that._push('}');
+          } else {
+            that._push(`${that.indent ? `\n${parent.indent}` : ''}}`);
+          }
+          that.item = parent;
+          that.unvisit(input);
+          return;
+        }
+        key = keys[i];
+        if (include?.indexOf?.(key) === -1) {
+          // replacer array excludes this key
+          i += 1;
+          return;
+        }
+        that.objectItem = item;
+        i += 1;
+        that.setItem(input[key], item, key);
+      },
+      write() {
+        const out = `${hasItems && !first ? ',' : ''}${item.indent ? `\n${item.indent}` : ''}${quoteString(key)}:${that.indent ? ' ' : ''}`;
+        first = false;
+        hasItems = true;
+        that.objectItem = undefined;
+        return out;
+      },
+    };
+    this.item = item;
+  }
+
+  prePush?: Function = undefined;
+  buffer = '';
+  bufferLength = 0;
+  pushCalled = false;
+
+  readSize = 0;
+  private _push(data) {
+    this.buffer += (this.objectItem ? this.objectItem.write() : '') + data;
+    this.prePush = undefined;
+    if (this.buffer.length >= this.bufferSize) {
+      this.pushCalled = !this.push(this.buffer);
+      this.buffer = '';
+      this.bufferLength = 0;
+      return false;
+    }
+    return true;
+  }
+
+  reading = false;
+  readMore = false;
+  readState: ReadState = ReadState.NotReading;
+  async _read(size?: number) {
+    if (this.readState !== ReadState.NotReading) {
+      this.readState = ReadState.ReadMore;
+      return;
+    }
+    this.readState = ReadState.Reading;
     this.pushCalled = false;
-    this.__read(size);
+    let p;
+    while (!this.pushCalled && this.item !== this.root && !this.destroyed) {
+      p = this.item.read(size);
+      // eslint-disable-next-line no-await-in-loop
+      if (p) await p;
+    }
+    if (this.item === this.root) {
+      if (this.buffer.length) this.push(this.buffer);
+      this.push(null);
+      this.readState = ReadState.Consumed;
+      this._destroy();
+    }
+    if (this.readState === <any>ReadState.ReadMore) {
+      this.readState = ReadState.NotReading;
+      this._read(size);
+    }
+    this.readState = ReadState.NotReading;
   }
 
-  path() {
-    return this.stack.map(({
-      key,
-      index,
-    }) => key || index).filter((v) => v || v > -1).reverse();
+  _destroy() {
+    this.buffer = undefined;
+    this.visited = undefined;
+    this.item = undefined;
+    this.prePush = undefined;
+  }
+
+  destroy(error?: Error): this {
+    if (error) this.emit('error', error);
+    super.destroy();
+    this._destroy();
+    return this;
   }
 }

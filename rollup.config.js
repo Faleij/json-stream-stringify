@@ -7,29 +7,28 @@ const input = './src/JsonStreamStringify.ts';
 const tsconfigOverride = { compilerOptions: { declaration: false } };
 const extensions = ['.ts', '.js', '.mjs'];
 const targets = {
-  chrome: 58,
-  ie: 8,
-  node: '0.12',
+  chrome: 55,
+  node: '7.10.1',
+};
+const envConfig = {
+  forceAllTransforms: false,
+  debug: false,
+  useBuiltIns: 'usage',
+  targets,
+  corejs: 3,
+  modules: false,
 };
 const presets = [
   ['@babel/preset-env', {
-    forceAllTransforms: true,
-    debug: false,
-    useBuiltIns: 'usage',
-    targets,
+    ...envConfig,
     corejs: 3,
-    modules: false,
+    useBuiltIns: 'usage',
   }],
 ];
 const presetsNoPolly = [
   ['@babel/preset-env', {
-    forceAllTransforms: true,
-    debug: false,
+    ...envConfig,
     useBuiltIns: false,
-    targets: {
-      node: '0.12',
-    },
-    modules: false,
   }],
 ];
 
@@ -55,7 +54,9 @@ function createExportConfig(
       presets,
       exclude: 'node_modules/**',
       babelHelpers: 'runtime',
-      plugins: ['@babel/plugin-transform-runtime'],
+      plugins: [
+        '@babel/plugin-transform-runtime',
+      ],
     }),
   ],
 ) {
@@ -91,6 +92,7 @@ const pluginsNoPolly = [
     extensions,
     presets: presetsNoPolly,
     exclude: 'node_modules/**',
+    plugins: [],
   }),
 ];
 
