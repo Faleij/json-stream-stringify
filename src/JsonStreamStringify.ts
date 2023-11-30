@@ -280,6 +280,9 @@ export class JsonStreamStringify extends Readable {
     this.item.depth = parent.depth + 1;
     if (this.indent) this.item.indent = this.indent.repeat(this.item.depth);
     this.item.path = path;
+
+    // complex items always should unvisit, primitive items already returned
+    this.unvisit(value);
   }
 
   setReadableStringItem(input: Readable, parent: Item) {
