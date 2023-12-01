@@ -190,6 +190,18 @@ describe('JsonStreamStringify', () => {
       b: 2,
     },
     '{"a":[1],"b":2}'));
+  
+  it('{a: array, "b": array } should be {"a":[],"b":[]}', () => {
+    const array = [];
+    const data = { a: array, b: array };
+    return createTest(data, '{"a":[],"b":[]}')();
+  });
+
+  it('{ partiallyEvaluated: { resolved: array }, evaluated: array } should be {"partiallyEvaluated":{"resolved":[]},"evaluated":[]}', () => {
+    const array = [];
+    const data = { raw: { reference: "/items" }, partiallyEvaluated: { resolved: array }, evaluated: array, };
+    return createTest(data, '{"raw":{"reference":"/items"},"partiallyEvaluated":{"resolved":[]},"evaluated":[]}')();
+  });
 
   it('[] should be []', createTest([], '[]'));
 
@@ -323,13 +335,13 @@ describe('JsonStreamStringify', () => {
 
     it('{ a: [], b: [] } should be {"a":[],"b":[]}', () => {
       const cyclicData : any = { a: [], b: [] };
-      return createTest(cyclicData, '{"a":[],"b":[]}', undefined, undefined, true)
+      return createTest(cyclicData, '{"a":[],"b":[]}', undefined, undefined, true)();
     });
   
     it('{ a: a, b: a } should be {"a":[],"b":{"$ref":"$"}}', () => {
       const cyclicData : any = { a: [] };
       cyclicData.b = cyclicData.a;
-      return createTest(cyclicData, '{"a":[],"b":{"$ref":"$[\\"a\\"]"}}', undefined, undefined, true)
+      return createTest(cyclicData, '{"a":[],"b":{"$ref":"$[\\"a\\"]"}}', undefined, undefined, true)();
     });
 
     const cyclicData1 : any = {};

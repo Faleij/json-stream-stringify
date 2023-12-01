@@ -382,6 +382,7 @@ export class JsonStreamStringify extends Readable {
           wasFirst = true;
           if (!len) {
             that._push('[]');
+            that.unvisit(input);
             that.item = parent;
             return;
           }
