@@ -321,6 +321,17 @@ describe('JsonStreamStringify', () => {
     cyclicData0.a = cyclicData0;
     it('{ a: a } should be {"a":{"$ref":"$"}}', () => createTest(cyclicData0, '{"a":{"$ref":"$"}}', undefined, undefined, true));
 
+    it('{ a: [], b: [] } should be {"a":[],"b":[]}', () => {
+      const cyclicData : any = { a: [], b: [] };
+      return createTest(cyclicData, '{"a":[],"b":[]}', undefined, undefined, true)
+    });
+  
+    it('{ a: a, b: a } should be {"a":[],"b":{"$ref":"$"}}', () => {
+      const cyclicData : any = { a: [] };
+      cyclicData.b = cyclicData.a;
+      return createTest(cyclicData, '{"a":[],"b":{"$ref":"$[\\"a\\"]"}}', undefined, undefined, true)
+    });
+
     const cyclicData1 : any = {};
     cyclicData1.a = cyclicData1;
     cyclicData1.b = [cyclicData1, {
