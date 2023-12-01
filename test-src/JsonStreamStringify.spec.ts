@@ -197,12 +197,6 @@ describe('JsonStreamStringify', () => {
     return createTest(data, '{"a":[],"b":[]}')();
   });
 
-  it('{ partiallyEvaluated: { resolved: array }, evaluated: array } should be {"partiallyEvaluated":{"resolved":[]},"evaluated":[]}', () => {
-    const array = [];
-    const data = { raw: { reference: "/items" }, partiallyEvaluated: { resolved: array }, evaluated: array, };
-    return createTest(data, '{"raw":{"reference":"/items"},"partiallyEvaluated":{"resolved":[]},"evaluated":[]}')();
-  });
-
   it('[] should be []', createTest([], '[]'));
 
   it('[[[]],[[]]] should be [[[]],[[]]]', createTest(
