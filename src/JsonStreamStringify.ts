@@ -130,6 +130,10 @@ function readAsPromised(stream, size) {
   const value = stream.read(size);
   if (value === null) {
     return new Promise((resolve, reject) => {
+      if (stream.readableEnded) {
+        resolve(null);
+        return;
+      }
       const endListener = () => resolve(null);
       stream.once('end', endListener);
       stream.once('error', reject);
@@ -358,11 +362,13 @@ export class JsonStreamStringify extends Readable {
     this.item = {
       async read() {
         if (read) return;
-        read = true;
-        input.then((v) => that.setItem(v, parent, key), (err) => {
+        try {
+          read = true;
+          that.setItem(await input, parent, key);
+        } catch (err) {
           that.emit('error', err);
           that.destroy();
-        });
+        }
       },
     };
   }
