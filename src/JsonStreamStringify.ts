@@ -486,6 +486,10 @@ export class JsonStreamStringify extends Readable {
   readMore = false;
   readState: ReadState = ReadState.NotReading;
   async _read(size?: number) {
+    if (this.readState === ReadState.Consumed) {
+      this._destroy();
+      return;
+    }
     if (this.readState !== ReadState.NotReading) {
       this.readState = ReadState.ReadMore;
       return;
@@ -502,7 +506,6 @@ export class JsonStreamStringify extends Readable {
       if (this.buffer.length) this.push(this.buffer);
       this.push(null);
       this.readState = ReadState.Consumed;
-      this._destroy();
     }
     if (this.readState === <any>ReadState.ReadMore) {
       this.readState = ReadState.NotReading;
