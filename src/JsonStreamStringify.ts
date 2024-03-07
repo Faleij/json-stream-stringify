@@ -506,6 +506,7 @@ export class JsonStreamStringify extends Readable {
       if (this.buffer.length) this.push(this.buffer);
       this.push(null);
       this.readState = ReadState.Consumed;
+      return;
     }
     if (this.readState === <any>ReadState.ReadMore) {
       this.readState = ReadState.NotReading;
