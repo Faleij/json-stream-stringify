@@ -486,6 +486,7 @@ export class JsonStreamStringify extends Readable {
   readMore = false;
   readState: ReadState = ReadState.NotReading;
   async _read(size?: number) {
+    if (this.readState === ReadState.Consumed) return;
     if (this.readState !== ReadState.NotReading) {
       this.readState = ReadState.ReadMore;
       return;
@@ -493,16 +494,17 @@ export class JsonStreamStringify extends Readable {
     this.readState = ReadState.Reading;
     this.pushCalled = false;
     let p;
-    while (!this.pushCalled && this.item !== this.root && !this.destroyed) {
+    while (!this.pushCalled && this.item !== this.root && this.buffer !== undefined) {
       p = this.item.read(size);
       // eslint-disable-next-line no-await-in-loop
       if (p) await p;
     }
+    if (this.buffer === undefined) return;
     if (this.item === this.root) {
       if (this.buffer.length) this.push(this.buffer);
       this.push(null);
       this.readState = ReadState.Consumed;
-      this._destroy();
+      this.cleanup();
     }
     if (this.readState === <any>ReadState.ReadMore) {
       this.readState = ReadState.NotReading;
@@ -511,18 +513,19 @@ export class JsonStreamStringify extends Readable {
     this.readState = ReadState.NotReading;
   }
 
-  _destroy() {
-    this.destroyed = true;
+  private cleanup() {
+    this.readState = ReadState.Consumed;
     this.buffer = undefined;
     this.visited = undefined;
     this.item = undefined;
+    this.root = undefined;
     this.prePush = undefined;
   }
 
   destroy(error?: Error): this {
     if (error) this.emit('error', error);
     super.destroy?.();
-    this._destroy();
+    this.cleanup();
     return this;
   }
 }
