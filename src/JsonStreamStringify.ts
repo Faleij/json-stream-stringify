@@ -126,7 +126,7 @@ function quoteString(string: string) {
   return str;
 }
 
-function readAsPromised(stream, size) {
+function readAsPromised(stream, size?) {
   const value = stream.read(size);
   if (value === null) {
     return new Promise((resolve, reject) => {
@@ -327,10 +327,10 @@ export class JsonStreamStringify extends Readable {
     let i = 0;
     const item = <any>{
       type: 'readable object',
-      async read(size: number) {
+      async read() {
         try {
           let out = '';
-          const data = await readAsPromised(input, size);
+          const data = await readAsPromised(input);
           if (data === null) {
             if (i && that.indent) {
               out += `\n${parent.indent}`;
