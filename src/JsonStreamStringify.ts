@@ -42,18 +42,6 @@ function getType(value): Types {
   return Types.Primitive;
 }
 
-const stackItemOpen = [];
-stackItemOpen[Types.Array] = '[';
-stackItemOpen[Types.Object] = '{';
-stackItemOpen[Types.ReadableString] = '"';
-stackItemOpen[Types.ReadableObject] = '[';
-
-const stackItemEnd = [];
-stackItemEnd[Types.Array] = ']';
-stackItemEnd[Types.Object] = '}';
-stackItemEnd[Types.ReadableString] = '"';
-stackItemEnd[Types.ReadableObject] = ']';
-
 function escapeString(string) {
   // Modified code, original code by Douglas Crockford
   // Original: https://github.com/douglascrockford/JSON-js/blob/master/json2.js
@@ -482,13 +470,18 @@ export class JsonStreamStringify extends Readable {
     return true;
   }
 
+  // TODO: can be removed?
   reading = false;
+  // TODO: can be removed?
   readMore = false;
   readState: ReadState = ReadState.NotReading;
   async _read(size?: number) {
     if (this.readState === ReadState.Consumed) return;
     if (this.readState !== ReadState.NotReading) {
       this.readState = ReadState.ReadMore;
+      return;
+    }
+    if (this.readState === ReadState.Reading) {
       return;
     }
     this.readState = ReadState.Reading;

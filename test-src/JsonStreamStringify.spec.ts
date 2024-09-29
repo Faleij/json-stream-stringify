@@ -1,6 +1,6 @@
 /* istanbul ignore file */
 
-import { Readable } from 'stream';
+import { Readable, Transform, Writable } from 'stream';
 // tslint:disable-next-line:import-name
 import expect from 'expect.js';
 import { JsonStreamStringify } from './JsonStreamStringify';
@@ -49,6 +49,16 @@ function readableStream(...args) {
     return stream.push(v);
   };
   return stream;
+}
+
+async function sleep(time: number) {
+  return new Promise<void>(async (resolve, reject) => {
+    try {
+      setTimeout(resolve, time);
+    } catch (err) {
+      reject(err);
+    }
+  });
 }
 
 describe('JsonStreamStringify', () => {
@@ -314,6 +324,48 @@ describe('JsonStreamStringify', () => {
     },
     `{"a":[{"name":"name","arr":[],"date":"${date.toJSON()}"}]}`));
 
+  it('readableStream({id: 1}, promise_with_delay({id: 2}), {id: 3}) should be [{"id": 1},{"id": 2},{"id": 3}]', async () => {
+    const p = async () => {
+      await sleep(50);
+      return {id: 2};
+    };
+    const input = readableStream({id: 1}, p(), {id: 3});
+    const expected = '[{"id":1},{"id":2},{"id":3}]';
+    const result = await new Promise((resolve, reject) => {
+      let result = '';
+      const jsonStream = new JsonStreamStringify(input);
+      const network = createSlowConsumer((data) => {
+        result += data;
+      }, 100, 1);
+      jsonStream.pipe(network);
+      network.on('finish', () => {
+        resolve(result);
+      });
+    });
+    expect(result).to.be.eql(expected);
+  });
+
+  it('[{id: 1}, promise_with_delay({id: 2}), {id: 3}] should be [{"id": 1},{"id": 2},{"id": 3}]', async () => {
+    const p = async () => {
+      await sleep(50);
+      return {id: 2};
+    };
+    const input = [{id: 1}, p(), {id: 3}];
+    const expected = '[{"id":1},{"id":2},{"id":3}]';
+    const result = await new Promise((resolve, reject) => {
+      let result = '';
+      const jsonStream = new JsonStreamStringify(input);
+      const network = createSlowConsumer((data) => {
+        result += data;
+      }, 0, 50);
+      jsonStream.pipe(network);
+      network.on('finish', () => {
+        resolve(result);
+      });
+    });
+    expect(result).to.be.eql(expected);
+  });
+    
   describe('space option', () => {
     it('{ a: 1 } should be {\\n  "a": 1\\n}', createTest({ a: 1 }, '{\n  "a": 1\n}', undefined, 2));
 
@@ -402,4 +454,76 @@ describe('JsonStreamStringify', () => {
     const arr = [a, a];
     it('[a, a] should be [{"foo":"bar"},{"foo":"bar"}]', createTest(arr, '[{"foo":"bar"},{"foo":"bar"}]'));
   });
+
+  describe('slow producer', () => {
+    it('{a:1, items: readableStream({id: 1}, {id: 2}, {id: 3})} should be {"a": 1, "items": [{"id": 1},{"id": 2},{"id": 3}]}', async () => {
+      const p = async () => {
+        await sleep(50);
+        return {id: 2};
+      };
+      const input = {items: readableStream({id: 1}, p(), {id: 3})};
+      const expected = '{"items":[{"id":1},{"id":2},{"id":3}]}';
+      const result = await new Promise((resolve, _reject) => {
+        let result = '';
+        const jsonStream = new JsonStreamStringify(input, undefined, undefined, undefined, 1);
+        const network = createSlowConsumer((data) => {
+          result += data;
+        }, 0, 1);
+        jsonStream.pipe(network);
+        network.on('finish', () => {
+          resolve(result);
+        });
+      });
+      expect(result).to.be.eql(expected);
+    });
+
+    describe('slow consumer', () => {
+      it('{a:1, items: readableStream({id: 1}, {id: 2}, {id: 3})} should be {"a": 1, "items": [{"id": 1},{"id": 2},{"id": 3}]}', async () => {
+        const args = [{id: 1}, {id: 2}, {id: 3}];
+        const stream = new Readable({
+          objectMode: true,
+        });
+        let i = 0;
+        stream._read = async () => {
+          if (i === args.length) {
+            return stream.push(null);
+          }
+          const v = args[i];
+          i++;
+          // second element is slow
+          if (i === 1) {
+            await sleep(10);
+          }
+          if (v instanceof Error) return stream.emit('error', v);
+          return stream.push(v);
+        };
+        const input = {page: 1, items: stream};
+        const expected = '{"page":1,"items":[{"id":1},{"id":2},{"id":3}]}';
+        const result = await new Promise((resolve, reject) => {
+          let result = '';
+          const jsonStream = new JsonStreamStringify(input, undefined, undefined, undefined, 10);
+          const network = createSlowConsumer((data) => {
+            result += data;
+          }, 10, 10);
+          jsonStream.pipe(network);
+          network.on('finish', () => {
+            resolve(result);
+          });
+        });
+        expect(result).to.be.eql(expected);
+      });
+    });
+  });
+
+  function createSlowConsumer(callback: (any) => void, delay: number = 10, highWaterMark: number = 10) {
+    return new class extends Writable {
+      _write(data, _encoding, cb) {
+        callback(data);
+        // 'Slow' stream
+        setTimeout(() => {
+          cb(null, data);
+        }, delay);
+      }
+    }({highWaterMark});
+  }
 });
