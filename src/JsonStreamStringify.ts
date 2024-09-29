@@ -42,18 +42,6 @@ function getType(value): Types {
   return Types.Primitive;
 }
 
-const stackItemOpen = [];
-stackItemOpen[Types.Array] = '[';
-stackItemOpen[Types.Object] = '{';
-stackItemOpen[Types.ReadableString] = '"';
-stackItemOpen[Types.ReadableObject] = '[';
-
-const stackItemEnd = [];
-stackItemEnd[Types.Array] = ']';
-stackItemEnd[Types.Object] = '}';
-stackItemEnd[Types.ReadableString] = '"';
-stackItemEnd[Types.ReadableObject] = ']';
-
 function escapeString(string) {
   // Modified code, original code by Douglas Crockford
   // Original: https://github.com/douglascrockford/JSON-js/blob/master/json2.js
@@ -72,15 +60,11 @@ function escapeString(string) {
 let primitiveToJSON: (value: any) => string;
 
 if (global?.JSON?.stringify instanceof Function) {
-  let canSerializeBigInt = true;
   try {
     if (JSON.stringify(global.BigInt ? global.BigInt('123') : '') !== '123') throw new Error();
+    primitiveToJSON = JSON.stringify;
   } catch (err) {
-    canSerializeBigInt = false;
-  }
-  if (canSerializeBigInt) {
-    primitiveToJSON = JSON.parse;
-  } else {
+    // Add support for bigint for primitiveToJSON
     // eslint-disable-next-line no-confusing-arrow
     primitiveToJSON = (value) => typeof value === 'bigint' ? String(value) : JSON.stringify(value);
   }
@@ -126,7 +110,7 @@ function quoteString(string: string) {
   return str;
 }
 
-function readAsPromised(stream, size?) {
+function readAsPromised(stream: Readable, size?) {
   const value = stream.read(size);
   if (value === null) {
     return new Promise((resolve, reject) => {
@@ -482,8 +466,6 @@ export class JsonStreamStringify extends Readable {
     return true;
   }
 
-  reading = false;
-  readMore = false;
   readState: ReadState = ReadState.NotReading;
   async _read(size?: number) {
     if (this.readState === ReadState.Consumed) return;
