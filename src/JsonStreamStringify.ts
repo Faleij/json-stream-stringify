@@ -60,15 +60,11 @@ function escapeString(string) {
 let primitiveToJSON: (value: any) => string;
 
 if (global?.JSON?.stringify instanceof Function) {
-  let canSerializeBigInt = true;
   try {
     if (JSON.stringify(global.BigInt ? global.BigInt('123') : '') !== '123') throw new Error();
+    primitiveToJSON = JSON.stringify;
   } catch (err) {
-    canSerializeBigInt = false;
-  }
-  if (canSerializeBigInt) {
-    primitiveToJSON = JSON.parse;
-  } else {
+    // Add support for bigint for primitiveToJSON
     // eslint-disable-next-line no-confusing-arrow
     primitiveToJSON = (value) => typeof value === 'bigint' ? String(value) : JSON.stringify(value);
   }
@@ -114,7 +110,7 @@ function quoteString(string: string) {
   return str;
 }
 
-function readAsPromised(stream, size?) {
+function readAsPromised(stream: Readable, size?) {
   const value = stream.read(size);
   if (value === null) {
     return new Promise((resolve, reject) => {
@@ -470,11 +466,6 @@ export class JsonStreamStringify extends Readable {
     return true;
   }
 
-  // TODO: can be removed?
-  reading = false;
-  // TODO: can be removed?
-  readMore = false;
-  readState: ReadState = ReadState.NotReading;
   async _read(size?: number) {
     if (this.readState === ReadState.Consumed) return;
     if (this.readState !== ReadState.NotReading) {
