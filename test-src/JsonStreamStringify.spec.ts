@@ -418,6 +418,7 @@ describe('JsonStreamStringify', function () {
     a.on('data', (data) => {
       out += data.toString();
     }).pause();
+    let ended = false;
     read();
     function read() {
       if (a.readableEnded) return;
@@ -425,10 +426,11 @@ describe('JsonStreamStringify', function () {
         a._read(); // simulate bad forced read
         a.read(); // legitimate read call
         a._read(); // simulate bad forced read
-        if (!p.writableEnded && i === 8) p.write(c++);
+        if (!(p.writableEnded || ended) && i === 8) p.write(c++);
         a._read(); // simulate bad forced read
       }
-      if (!p.writableEnded && c > 3) {
+      if (!(p.writableEnded || ended) && c > 3) {
+        ended = true;
         p.end();
         // p.read();
         setTimeout(read, 10);

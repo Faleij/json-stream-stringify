@@ -112,7 +112,7 @@ function quoteString(string: string) {
 
 function readAsPromised(stream: Readable, size?) {
   const value = stream.read(size);
-  if (value === null && !stream.readableEnded) {
+  if (value === null && !(stream.readableEnded || (stream as any)._readableState?.ended)) {
     return new Promise((resolve, reject) => {
       const endListener = () => resolve(null);
       stream.once('end', endListener);
