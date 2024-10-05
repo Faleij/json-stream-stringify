@@ -112,19 +112,15 @@ function quoteString(string: string) {
 
 function readAsPromised(stream: Readable, size?) {
   const value = stream.read(size);
-  if (value === null) {
+  if (value === null && !stream.readableEnded) {
     return new Promise((resolve, reject) => {
-      if (stream.readableEnded) {
-        resolve(null);
-        return;
-      }
       const endListener = () => resolve(null);
       stream.once('end', endListener);
       stream.once('error', reject);
       stream.once('readable', () => {
         stream.removeListener('end', endListener);
         stream.removeListener('error', reject);
-        resolve(stream.read());
+        readAsPromised(stream, size).then(resolve, reject);
       });
     });
   }
@@ -137,10 +133,11 @@ interface Item {
   value?: any;
   indent?: string;
   path?: (string | number)[];
+  type?: string;
 }
 
 enum ReadState {
-  NotReading = 0,
+  Inactive = 0,
   Reading,
   ReadMore,
   Consumed,
@@ -278,17 +275,18 @@ export class JsonStreamStringify extends Readable {
       this.emit('error', new Error('Readable Stream is in flowing mode, data may have been lost. Trying to pause stream.'), input, parent.path);
     }
     const that = this;
-    this._push('"');
-    input.once('end', () => {
-      this._push('"');
-      this.item = parent;
-      this.emit('readable');
-    });
+    this.prePush = '"';
     this.item = <any>{
       type: 'readable string',
       async read(size: number) {
         try {
           const data = await readAsPromised(input, size);
+          if (data === null) {
+            that._push('"');
+            that.item = parent;
+            that.unvisit(input);
+            return;
+          }
           if (data) that._push(escapeString(data.toString()));
         } catch (err) {
           that.emit('error', err);
@@ -328,7 +326,7 @@ export class JsonStreamStringify extends Readable {
           if (first) first = false;
           else out += ',';
           if (that.indent) out += `\n${item.indent}`;
-          that._push(out);
+          that.prePush = out;
           that.setItem(data, item, i);
           i += 1;
         } catch (err) {
@@ -448,15 +446,20 @@ export class JsonStreamStringify extends Readable {
     this.item = item;
   }
 
-  prePush?: Function = undefined;
   buffer = '';
   bufferLength = 0;
   pushCalled = false;
 
   readSize = 0;
+  /** if set, this string will be prepended to the next _push call, if the call output is not empty, and set to undefined */
+  prePush?: string;
   private _push(data) {
-    this.buffer += (this.objectItem ? this.objectItem.write() : '') + data;
-    this.prePush = undefined;
+    const out = (this.objectItem ? this.objectItem.write() : '') + data;
+    if (this.prePush && out.length) {
+      this.buffer += this.prePush;
+      this.prePush = undefined;
+    }
+    this.buffer += out;
     if (this.buffer.length >= this.bufferSize) {
       this.pushCalled = !this.push(this.buffer);
       this.buffer = '';
@@ -466,10 +469,10 @@ export class JsonStreamStringify extends Readable {
     return true;
   }
 
-  readState: ReadState = ReadState.NotReading;
-  async _read(size?: number) {
+  readState: ReadState = ReadState.Inactive;
+  async _read(size?: number): Promise<void> {
     if (this.readState === ReadState.Consumed) return;
-    if (this.readState !== ReadState.NotReading) {
+    if (this.readState !== ReadState.Inactive) {
       this.readState = ReadState.ReadMore;
       return;
     }
@@ -487,12 +490,14 @@ export class JsonStreamStringify extends Readable {
       this.push(null);
       this.readState = ReadState.Consumed;
       this.cleanup();
+      return;
     }
     if (this.readState === <any>ReadState.ReadMore) {
-      this.readState = ReadState.NotReading;
-      this._read(size);
+      this.readState = ReadState.Inactive;
+      await this._read(size);
+      return;
     }
-    this.readState = ReadState.NotReading;
+    this.readState = ReadState.Inactive;
   }
 
   private cleanup() {

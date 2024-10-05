@@ -1,6 +1,6 @@
 /* istanbul ignore file */
 
-import { Readable } from 'stream';
+import { Readable, PassThrough, Writable } from 'stream';
 // tslint:disable-next-line:import-name
 import expect from 'expect.js';
 import { JsonStreamStringify } from './JsonStreamStringify';
@@ -15,7 +15,7 @@ function emitError(err: Error) {
 }
 
 function createTest(input, expected, ...args) {
-  return () => new Promise((resolve, reject) => {
+  return () => new Promise<{ jsonStream: InstanceType<typeof JsonStreamStringify> }>((resolve, reject) => {
     let str = '';
     const jsonStream = new JsonStreamStringify(input, ...args)
       .once('end', () => {
@@ -51,7 +51,9 @@ function readableStream(...args) {
   return stream;
 }
 
-describe('JsonStreamStringify', () => {
+describe('JsonStreamStringify', function () {
+  this.timeout(10000);
+
   after(() => {
     // test does not exit cleanly :/
     setTimeout(() => process.exit(), 500).unref();
@@ -402,4 +404,66 @@ describe('JsonStreamStringify', () => {
     const arr = [a, a];
     it('[a, a] should be [{"foo":"bar"},{"foo":"bar"}]', createTest(arr, '[{"foo":"bar"},{"foo":"bar"}]'));
   });
+
+  it('bad reader', (resolve) => {
+    const p = new PassThrough({ objectMode: true });
+    let c = 0;
+    p.write(c++);
+    const a = new JsonStreamStringify(p);
+    let out = '';
+    a.once('end', () => {
+      expect(out).to.be('[0,1,2,3]');
+      resolve();
+    })
+    a.on('data', (data) => {
+      out += data.toString();
+    }).pause();
+    read();
+    function read() {
+      if (a.readableEnded) return;
+      for (let i = 0; i < 10; i++) {
+        a._read(); // simulate bad forced read
+        a.read(); // legitimate read call
+        a._read(); // simulate bad forced read
+        if (!p.writableEnded && i === 8) p.write(c++);
+        a._read(); // simulate bad forced read
+      }
+      if (!p.writableEnded && c > 3) {
+        p.end();
+        // p.read();
+        setTimeout(read, 10);
+        return;
+      }
+      setImmediate(read);
+    }
+  });
+
+  it('prePush', (cb) => {
+    const p = new PassThrough({ objectMode: true });
+    const a = new JsonStreamStringify(p);
+    (a as any).bufferSize = Infinity;
+    a.prePush = ',';
+    (a as any)._push('');
+    expect(a.buffer).to.be('[');
+    a.prePush = undefined;
+    (a as any)._push('"a"');
+    a.prePush = ',';
+    (a as any)._push('');
+    expect(a.buffer).to.be('["a"');
+    (a as any)._push('"b"');
+    a.prePush = ',';
+    (a as any)._push('');
+    expect(a.buffer).to.be('["a","b"');
+    a.prePush = '';
+    p.end(async () => {
+      try {
+        await a.item?.read();
+        expect(a.buffer).to.be('["a","b"]');
+        cb();
+      } catch(err) {
+        cb(err);
+      }
+    });
+  });
+
 });
