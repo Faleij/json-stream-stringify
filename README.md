@@ -181,6 +181,16 @@ app.get('/api/users', (req, res, next) => {
 });
 ```
 
+## Practical Example with Koa + Koa Router + Mongoose
+
+```javascript
+app.get('/api/users', (ctx) => {
+  ctx.type = 'json'; // Required for proper handling by test frameworks and some clients
+  ctx.body = new JsonStreamStringify(Users.find().stream());
+});
+```
+
+
 ### Why do I not get proper typings? (Missing .on(...), etc.)
 
 install ``@types/readable-stream`` or ``@types/node`` or create your own ``stream.d.ts`` that exports a ``Readable`` class.
