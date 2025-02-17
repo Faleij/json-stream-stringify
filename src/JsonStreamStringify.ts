@@ -186,6 +186,11 @@ export class JsonStreamStringify extends Readable {
   }
 
   setItem(value, parent: Item, key: string | number = '') {
+    // use replacer if applicable
+    if (this.replacer) {
+      value = this.replacer.call(parent.value, key, value);
+    }
+
     // call toJSON where applicable
     if (
       value
@@ -193,11 +198,6 @@ export class JsonStreamStringify extends Readable {
       && typeof value.toJSON === 'function'
     ) {
       value = value.toJSON(key);
-    }
-
-    // use replacer if applicable
-    if (this.replacer) {
-      value = this.replacer.call(parent.value, key, value);
     }
 
     // coerece functions and symbols into undefined
