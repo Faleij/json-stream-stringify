@@ -454,12 +454,14 @@ export class JsonStreamStringify extends Readable {
   /** if set, this string will be prepended to the next _push call, if the call output is not empty, and set to undefined */
   prePush?: string;
   private _push(data) {
-    const out = (this.objectItem ? this.objectItem.write() : '') + data;
-    if (this.prePush && out.length) {
-      this.buffer += this.prePush;
+    const prefix = this.objectItem ? this.objectItem.write() : '';
+    if (this.prePush && (prefix.length || data.length)) {
+      this.buffer += prefix + this.prePush;
       this.prePush = undefined;
+    } else {
+      this.buffer += prefix;
     }
-    this.buffer += out;
+    this.buffer += data;
     if (this.buffer.length >= this.bufferSize) {
       this.pushCalled = !this.push(this.buffer);
       this.buffer = '';

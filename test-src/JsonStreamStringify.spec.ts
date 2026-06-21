@@ -274,6 +274,17 @@ describe('JsonStreamStringify', function () {
     a: readableStream(1, 2, 3),
   },                                                                 '{"a":[1,2,3]}'));
 
+  it('{key:"value",data:readableStream("hello")} should be {"key":"value","data":"hello"}', createTest({
+    key: 'value',
+    data: readableStream('hello'),
+  }, '{"key":"value","data":"hello"}'));
+
+  it('{a:"b",c:readableStream("d"),e:"f"} should be {"a":"b","c":"d","e":"f"}', createTest({
+    a: 'b',
+    c: readableStream('d'),
+    e: 'f',
+  }, '{"a":"b","c":"d","e":"f"}'));
+
   it('readableStream(\'a\', \'b\', \'c\') should be "abc"', createTest(readableStream('a', 'b', 'c'), '"abc"'));
 
   it('readableStream(\'a\', \'b\', \'c\') should be "abc"', () => {
