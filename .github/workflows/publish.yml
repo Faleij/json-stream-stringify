@@ -1,0 +1,103 @@
+name: JsonStreamStringify-Publish
+
+on:
+  workflow_run:
+    workflows: [JsonStreamStringify-CI]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      ci_run_id:
+        description: CI workflow run ID to download build-artifact from (defaults to latest successful CI run on --ref branch)
+        required: false
+      dry_run:
+        description: Verify auth and tarball with npm publish --dry-run instead of publishing
+        type: boolean
+        default: true
+
+permissions:
+  id-token: write  # Required for OIDC trusted publishing
+  contents: read
+  actions: read    # Required to download artifacts from the CI workflow run
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: deploy
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       !github.event.workflow_run.head_branch)
+    steps:
+      - name: Resolve CI workflow run
+        id: ci-run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            echo "run_id=${{ github.event.workflow_run.id }}" >> "$GITHUB_OUTPUT"
+            echo "run_number=${{ github.event.workflow_run.run_number }}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ -n "${{ inputs.ci_run_id }}" ]; then
+            run_id="${{ inputs.ci_run_id }}"
+          else
+            branch="${GITHUB_REF#refs/heads/}"
+            run_id="$(gh api "repos/${{ github.repository }}/actions/workflows/JsonStreamStringify-CI/runs" \
+              -f branch="$branch" \
+              -f status=completed \
+              -f event=push \
+              --jq '.workflow_runs[] | select(.conclusion == "success") | .id' | head -1)"
+          fi
+
+          if [ -z "$run_id" ]; then
+            echo "::error::No successful CI run found. Run CI first or pass ci_run_id."
+            exit 1
+          fi
+
+          run_number="$(gh api "repos/${{ github.repository }}/actions/runs/$run_id" --jq '.run_number')"
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+          echo "run_number=$run_number" >> "$GITHUB_OUTPUT"
+          echo "Using CI run $run_id (#$run_number)"
+
+      - name: Verify build artifact exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          artifact_name="build-artifact-${{ steps.ci-run.outputs.run_number }}"
+          count="$(gh api "repos/${{ github.repository }}/actions/runs/${{ steps.ci-run.outputs.run_id }}/artifacts" \
+            --jq "[.artifacts[] | select(.name == \"$artifact_name\")] | length")"
+          if [ "$count" -eq 0 ]; then
+            echo "::error::Artifact $artifact_name not found on CI run ${{ steps.ci-run.outputs.run_id }}"
+            exit 1
+          fi
+          echo "Found artifact: $artifact_name"
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false  # never use caching in release builds
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-artifact-${{ steps.ci-run.outputs.run_number }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ steps.ci-run.outputs.run_id }}
+
+      - name: Verify artifact contents
+        run: |
+          test -f package.json
+          test -d lib
+          npm pkg get name version
+
+      - name: Publish to npm
+        if: ${{ !env.ACT }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "true" ]; then
+            echo "Dry run — validating tarball and registry auth without publishing"
+            npm publish --dry-run
+          else
+            npm publish
+          fi
