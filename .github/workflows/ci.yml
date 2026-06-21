@@ -1,5 +1,9 @@
 name: JsonStreamStringify-CI
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
 concurrency: 
   group: ${{ github.head_ref || 'push' }}
   cancel-in-progress: true
@@ -24,13 +28,13 @@ jobs:
         args: zip -0 -qq -r node_modules.zip node_modules
     - uses: actions/upload-artifact@v4
       with:
-        name: node-modules-artifact-${{ github.run_number }}
+        name: node-modules-artifact-${{ github.run_id }}
         retention-days: 1
         path: node_modules.zip
         compression-level: 0
     - uses: actions/upload-artifact@v4
       with:
-        name: build-artifact-${{ github.run_number }}
+        name: build-artifact-${{ github.run_id }}
         retention-days: 1
         path: |
           package.json
@@ -46,10 +50,10 @@ jobs:
     steps:
     - uses: actions/download-artifact@v4
       with:
-        name: build-artifact-${{ github.run_number }}
+        name: build-artifact-${{ github.run_id }}
     - uses: actions/download-artifact@v4
       with:
-        name: node-modules-artifact-${{ github.run_number }}
+        name: node-modules-artifact-${{ github.run_id }}
     - uses: montudor/action-zip@v1
       with:
         args: unzip -qq node_modules.zip -d .
@@ -59,7 +63,7 @@ jobs:
     - run: npm run coverage
     - uses: actions/upload-artifact@v4
       with:
-        name: coverage-${{ github.run_number }}
+        name: coverage-${{ github.run_id }}
         retention-days: 1
         path: coverage
     - name: Coveralls
@@ -77,10 +81,10 @@ jobs:
     steps:
     - uses: actions/download-artifact@v4
       with:
-        name: build-artifact-${{ github.run_number }}
+        name: build-artifact-${{ github.run_id }}
     - uses: actions/download-artifact@v4
       with:
-        name: node-modules-artifact-${{ github.run_number }}
+        name: node-modules-artifact-${{ github.run_id }}
     - uses: montudor/action-zip@v1
       with:
         args: unzip -qq node_modules.zip -d .

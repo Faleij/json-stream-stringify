@@ -1,13 +1,13 @@
 name: JsonStreamStringify-Publish
 
 on:
-  workflow_run:
-    workflows: [JsonStreamStringify-CI]
-    types: [completed]
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       ci_run_id:
-        description: CI workflow run ID to download build-artifact from (defaults to latest successful CI run on --ref branch)
+        description: CI workflow run ID (databaseId) to download build-artifact from (defaults to latest successful CI run for this ref's commit)
         required: false
       dry_run:
         description: Verify auth and tarball with npm publish --dry-run instead of publishing
@@ -23,49 +23,56 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     environment: deploy
-    if: >
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.event == 'push' &&
-       !github.event.workflow_run.head_branch)
     steps:
       - name: Resolve CI workflow run
         id: ci-run
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_run" ]; then
-            echo "run_id=${{ github.event.workflow_run.id }}" >> "$GITHUB_OUTPUT"
-            echo "run_number=${{ github.event.workflow_run.run_number }}" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
+          set -euo pipefail
 
           if [ -n "${{ inputs.ci_run_id }}" ]; then
             run_id="${{ inputs.ci_run_id }}"
+            echo "Using explicit ci_run_id input"
           else
-            branch="${GITHUB_REF#refs/heads/}"
-            run_id="$(gh api "repos/${{ github.repository }}/actions/workflows/JsonStreamStringify-CI/runs" \
-              -f branch="$branch" \
-              -f status=completed \
-              -f event=push \
-              --jq '.workflow_runs[] | select(.conclusion == "success") | .id' | head -1)"
+            echo "Waiting for successful CI on commit ${{ github.sha }}..."
+            for attempt in $(seq 1 60); do
+              run_json="$(gh run list \
+                --repo "${{ github.repository }}" \
+                --workflow=ci.yml \
+                --commit="${{ github.sha }}" \
+                --status=success \
+                --limit 1 \
+                --json databaseId,number,headSha)"
+              run_id="$(echo "$run_json" | jq -r '.[0].databaseId // empty')"
+              if [ -n "$run_id" ]; then
+                echo "CI succeeded (run id $run_id) after $attempt attempt(s)"
+                echo "$run_json" | jq -r '.[0] | "  run #\(.number) sha \(.headSha)"'
+                break
+              fi
+              if [ "$attempt" -eq 60 ]; then
+                echo "::error::Timed out waiting for CI success on commit ${{ github.sha }}"
+                exit 1
+              fi
+              sleep 30
+            done
           fi
 
-          if [ -z "$run_id" ]; then
+          run_id="$(printf '%s' "$run_id" | tr -d '\r\n')"
+
+          if ! [[ "$run_id" =~ ^[0-9]+$ ]]; then
             echo "::error::No successful CI run found. Run CI first or pass ci_run_id."
             exit 1
           fi
 
-          run_number="$(gh api "repos/${{ github.repository }}/actions/runs/$run_id" --jq '.run_number')"
           echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
-          echo "run_number=$run_number" >> "$GITHUB_OUTPUT"
-          echo "Using CI run $run_id (#$run_number)"
+          echo "Using CI run id $run_id, artifact build-artifact-$run_id"
 
       - name: Verify build artifact exists
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          artifact_name="build-artifact-${{ steps.ci-run.outputs.run_number }}"
+          artifact_name="build-artifact-${{ steps.ci-run.outputs.run_id }}"
           count="$(gh api "repos/${{ github.repository }}/actions/runs/${{ steps.ci-run.outputs.run_id }}/artifacts" \
             --jq "[.artifacts[] | select(.name == \"$artifact_name\")] | length")"
           if [ "$count" -eq 0 ]; then
@@ -82,7 +89,7 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: build-artifact-${{ steps.ci-run.outputs.run_number }}
+          name: build-artifact-${{ steps.ci-run.outputs.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ steps.ci-run.outputs.run_id }}
 
