@@ -4,7 +4,7 @@ import typescript from 'rollup-plugin-typescript2';
 import dts from 'rollup-plugin-dts';
 
 const input = './src/JsonStreamStringify.ts';
-const tsconfigOverride = { compilerOptions: { declaration: false } };
+const tsconfigOverride = { compilerOptions: { declaration: false, skipLibCheck: true } };
 const extensions = ['.ts', '.js', '.mjs'];
 const targets = {
   chrome: 55,
@@ -43,6 +43,8 @@ function createExportConfig(
   plugins = [
     typescript({
       useTsconfigDeclarationDir: true,
+      check: false,
+      tsconfigOverride,
     }),
     nodeResolve({
       jsnext: true,
@@ -51,7 +53,10 @@ function createExportConfig(
     babel({
       babelrc: false,
       extensions,
-      presets,
+      presets: [
+        '@babel/preset-typescript',
+        ...presets,
+      ],
       exclude: 'node_modules/**',
       babelHelpers: 'runtime',
       plugins: [
@@ -82,7 +87,7 @@ function createExportConfig(
 }
 
 const pluginsNoPolly = [
-  typescript({ tsconfigOverride }),
+  typescript({ check: false, tsconfigOverride }),
   nodeResolve({
     jsnext: true,
     extensions,
@@ -90,7 +95,10 @@ const pluginsNoPolly = [
   babel({
     babelrc: false,
     extensions,
-    presets: presetsNoPolly,
+    presets: [
+      '@babel/preset-typescript',
+      ...presetsNoPolly,
+    ],
     exclude: 'node_modules/**',
     plugins: [],
   }),
@@ -150,6 +158,7 @@ export default [
         extensions,
       }),
       typescript({
+        check: false,
         tsconfigOverride: {
           compilerOptions: {
             ...tsconfigOverride.compilerOptions,
@@ -160,7 +169,7 @@ export default [
       babel({
         babelrc: false,
         extensions,
-        presets: [],
+        presets: ['@babel/preset-typescript'],
         exclude: 'node_modules/**',
       }),
     ],
@@ -184,11 +193,14 @@ export default [
         jsnext: true,
         extensions,
       }),
-      typescript({ tsconfigOverride }),
+      typescript({ check: false, tsconfigOverride }),
       babel({
         babelrc: false,
         extensions,
-        presets,
+        presets: [
+          '@babel/preset-typescript',
+          ...presets,
+        ],
         exclude: 'node_modules/**',
       }),
     ],
