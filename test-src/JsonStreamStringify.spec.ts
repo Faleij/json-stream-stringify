@@ -61,6 +61,40 @@ describe('JsonStreamStringify', function () {
 
   const date = new Date();
 
+  for (const { name, value } of [
+    { name: 'a row', value: { id: 1 } },
+    { name: 'end-of-stream', value: null },
+  ]) {
+    it(`does not emit an error when a pending object read returns ${name} after destruction`, async () => {
+      const errors: Error[] = [];
+      const pending = new Promise<{
+        source: Readable;
+        output: InstanceType<typeof JsonStreamStringify>;
+      }>((resolve) => {
+        const source = new Readable({
+          objectMode: true,
+          read() {
+            resolve({ source, output });
+          },
+        });
+        const output = new JsonStreamStringify(source);
+        output.on('error', (error) => errors.push(error));
+        output.resume();
+      });
+      const { source, output } = await pending;
+
+      try {
+        output.destroy();
+        source.push(value);
+        await new Promise((resolve) => setImmediate(resolve));
+
+        expect(errors).to.be.empty();
+      } finally {
+        source.push(null);
+      }
+    });
+  }
+
   it('null should be null', createTest(null, 'null'));
 
   it('Infinity should be null', createTest(Infinity, 'null'));

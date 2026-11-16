@@ -313,6 +313,9 @@ export class JsonStreamStringify extends Readable {
         try {
           let out = '';
           const data = await readAsPromised(input);
+          if (that.readState === ReadState.Consumed) {
+            return;
+          }
           if (data === null) {
             if (i && that.indent) {
               out += `\n${parent.indent}`;
